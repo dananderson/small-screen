@@ -1,6 +1,9 @@
-before_install:
-  - sudo apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libsdl2-dev
-
 language: node_js
 node_js:
   - 10
+
+before_install:
+  - sudo apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libsdl2-dev
+
+install:
+  - yarn install --network-concurrency 1
