@@ -19,6 +19,8 @@ addons:
 install:
   - sudo ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
   - sudo ln -s /usr/bin/g++-6 /usr/local/bin/g++
+  - export npm_config_sdl_include_path=/usr/include/SDL2
+  - export npm_config_sdl_library_path=/usr/lib/x86_64-linux-gnu
   - npm install
 
 script:
