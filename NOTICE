@@ -1,0 +1,10 @@
+In addition to the dependencies listed in package.json, Small Screen directly includes source code from the following projects:
+
+- BezierEasing (https://github.com/gre/bezier-easing), under the MIT License.
+- React Native (https://github.com/facebook/react-native), under the MIT License.
+
+- Base64 (https://github.com/tkislan/base64), under MIT License (deps/base64/LICENSE).
+- moodycamel::ConcurrentQueue, under Simplified BSD License (deps/concurrentqueue/LICENSE.md).
+- napi-thread-safe-callback, under MIT License (deps/napi-thread-safe-callback/LICENSE.md).
+- Nano SVG (https://github.com/memononen/nanosvg), under the zlib License (deps/nanosvg/LICENSE.txt).
+- stb (https://github.com/nothings/stb), under the MIT License (deps/stb/LICENSE.txt).

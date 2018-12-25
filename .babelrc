@@ -1,0 +1,10 @@
+{
+  "presets": [
+    "react",
+    [ "env", { "targets": { "node": "10" } } ]
+  ],
+  "plugins": [
+      [ "transform-class-properties", { "spec": false } ],
+      [ "transform-object-rest-spread", { "useBuiltIns": true } ]
+    ]
+}

@@ -1,0 +1,86 @@
+{
+  "name": "small-screen",
+  "description": "Experimental toolkit for building React apps for Raspberry Pi.",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dananderson/small-screen.git"
+  },
+  "author": "Daniel Anderson <dan.anderson.oss@gmail.com>",
+  "keywords": [
+    "react",
+    "raspberry pi"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "dependencies": {
+    "bindings": "^1.3.1",
+    "node-addon-api": "^1.6.2",
+    "parse-bmfont-ascii": "^1.0.6",
+    "prop-types": "^15.6.1",
+    "queue-fifo": "^0.2.5",
+    "yoga-layout": "^1.9.3"
+  },
+  "peerDependencies": {
+    "react": "16.4.0",
+    "react-reconciler": "0.11.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-eslint": "^10.0.1",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-react": "^6.24.1",
+    "babel-register": "^6.26.0",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "del-cli": "^1.1.0",
+    "eslint": "^5.4.0",
+    "mocha": "^5.2.0",
+    "react": "16.4.0",
+    "react-reconciler": "0.11.0",
+    "rollup": "0.58.2",
+    "rollup-plugin-babel": "3.0.4",
+    "rollup-plugin-babel-minify": "6.0.0",
+    "rollup-plugin-commonjs": "9.1.3",
+    "rollup-plugin-node-resolve": "3.3.0",
+    "sinon": "^7.2.2",
+    "standard": "^12.0.1"
+  },
+  "config": {
+    "yoga-layout:platform": "standalone"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "deps/",
+    "binding.gyp"
+  ],
+  "scripts": {
+    "bundle": "rollup -c",
+    "clean": "del-cli dist build",
+    "lint": "standard",
+    "test": "standard && mocha --require babel-core/register --reporter spec \"test/**/*.spec.js\""
+  },
+  "standard": {
+    "ignore": [
+      "deps/",
+      "dist/",
+      "node_modules/",
+      "src/",
+      "example/",
+      "build/",
+      "lib/ThirdParty/",
+      "test/babel-helpers.js"
+    ],
+    "parser": "babel-eslint",
+    "env": {
+      "mocha": true,
+      "node": true
+    }
+  }
+}
