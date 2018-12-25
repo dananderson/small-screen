@@ -1,3 +1,6 @@
+dist: trusty
+sudo: required
+
 language: node_js
 node_js:
   - 10
@@ -14,8 +17,8 @@ addons:
       - libsdl2-dev
 
 install:
-  - ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
-  - ln -s /usr/bin/g++-6 /usr/local/bin/g++
+  - sudo ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
+  - sudo ln -s /usr/bin/g++-6 /usr/local/bin/g++
   - npm install
 
 script:
