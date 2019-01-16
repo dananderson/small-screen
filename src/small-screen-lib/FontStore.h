@@ -18,7 +18,8 @@ public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
 
     FontStore(const Napi::CallbackInfo& info);
-
+    ~FontStore() {}
+    
     Napi::Value InstallFont(const Napi::CallbackInfo& info);
     Napi::Value CreateFontSample(const Napi::CallbackInfo& info);
 
@@ -27,5 +28,8 @@ private:
     static Napi::FunctionReference constructor;
     std::vector<Font *> fonts;
 };
+
+Napi::Value Install(const Napi::CallbackInfo& info);
+Napi::Value Sample(const Napi::CallbackInfo& info);
 
 #endif
