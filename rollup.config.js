@@ -14,7 +14,7 @@ import { builtinModules } from 'module'
 import fs from 'fs'
 import path from 'path'
 
-const input = 'lib/library.js'
+const input = 'lib/export.js'
 const file = 'dist/small-screen.%env.js'
 
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json')))

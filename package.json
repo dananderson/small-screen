@@ -74,7 +74,6 @@
       "dist/",
       "node_modules/",
       "src/",
-      "example/",
       "build/",
       "lib/Core/ThirdParty/"
     ],

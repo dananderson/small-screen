@@ -10,11 +10,7 @@
 #include <string>
 #include <sstream>
 
-// throw std::exception(Format() << "x = " << 100);
-// throw std::exception(Format() << "x = " << 100 >> Format::to_str);
-
-class Format
-{
+class Format {
     public:
 
     Format() {}

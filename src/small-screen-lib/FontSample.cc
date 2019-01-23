@@ -6,11 +6,24 @@
 
 #include "FontSample.h"
 
-FontSample::FontSample(const int fontSize, unsigned char *texturePixels, int textureWidth, int textureHeight)
-    : fontSize(fontSize), texturePixels(texturePixels), textureWidth(textureWidth), textureHeight(textureHeight) {
+FontSample::FontSample() {
 
 }
 
 FontSample::~FontSample() {
 
+}
+
+const unsigned char *FontSample::GetTexturePixels() const {
+    return this->texturePixels.empty() ? nullptr : &this->texturePixels[0];
+}
+
+float FontSample::GetKernAdvance(int codepoint, int nextCodePoint) {
+    auto iter = this->kerningPairs.find(((codepoint & 0xFFFF) << 16) | (nextCodePoint & 0xFFFF));
+
+    if (iter != this->kerningPairs.end()) {
+        return iter->second;
+    }
+
+    return 0;
 }

@@ -6,9 +6,8 @@
 
 #include "SDLBindings.h"
 #include "Graphics.h"
-#include "Image.h"
-#include "Font.h"
-
+#include "RenderingContext.h"
+#include "Gamepad.h"
 #include "napi.h"
 
 using namespace Napi;
@@ -16,10 +15,10 @@ using namespace Napi;
 Object Init(Env env, Object exports) {
     SDLBindingsInit(env, exports);
     GraphicsInit(env, exports);
-    ImageInit(env, exports);
-    FontInit(env, exports);
+    RenderingContext::Init(env, exports);
+    Gamepad::Init(env, exports);
     
     return exports;
 }
 
-NODE_API_MODULE(internal, Init);
+NODE_API_MODULE(SmallScreenSDL, Init);

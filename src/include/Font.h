@@ -10,35 +10,35 @@
 #include <string>
 
 enum FontStyle {
+    FONT_STYLE_UNKNOWN = -1,
     FONT_STYLE_NORMAL = 0,
     FONT_STYLE_ITALIC = 1,
 };
 
 enum FontWeight {
+    FONT_WEIGHT_UNKNOWN = -1,
     FONT_WEIGHT_NORMAL = 0,
     FONT_WEIGHT_BOLD = 1,
 };
 
+FontStyle StringToFontStyle(const std::string fontStyle);
+FontWeight StringToFontWeight(const std::string fontWeight);
+
 class FontSample;
 
 class Font {
-    public:
-
-    Font(const std::string& fontFamily);
-
+public:
+    Font(const std::string& fontFamily, FontStyle fontStyle, FontWeight fontWeight);
     virtual ~Font();
 
     const std::string GetFontFamily() const;
     FontStyle GetFontStyle() const;
     FontWeight GetFontWeight() const;
-    virtual FontSample *CreateFontSample(const int size) = 0;
 
-    private:
-
+private:
     std::string fontFamily;
     FontStyle fontStyle;
     FontWeight fontWeight;
-
 };
 
 #endif

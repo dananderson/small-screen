@@ -4,192 +4,164 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "Font.h"
+#include "FontStore.h"
 
 #include <cstdio>
 #include <string>
+#include <iostream>
+#include <memory>
 
-#define CMP_BMFONT_IMPLEMENTATION
-#include <cmp_bmfont.cpp>
-
-#define STB_TRUETYPE_IMPLEMENTATION
-#include <stb_truetype.h>
+#include "Format.h"
+#include "StbFont.h"
+#include "StbFontSample.h"
 
 using namespace Napi;
 
-struct FileContents {
-    unsigned char *data;
-    size_t size;
-};
+std::vector<std::shared_ptr<Font>> sFonts;
+std::vector<std::shared_ptr<FontSample>> sSamples;
 
-bool LoadFileContents(const std::string& filename, FileContents *contents) {
-    auto file = fopen(filename.c_str(), "rb");
-
-    if (!file) {
-        return false;
-    }
-
-    fseek(file, 0, SEEK_END);
-    auto size = (int)ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    auto data = new unsigned char[size];
-
-    if (!data) {
-        fclose(file);
-        return false;
-    }
-
-    if (fread(data, 1, size, file) != (unsigned long)size) {
-        delete [] data;
-        fclose(file);
-        return false;
-    }
-
-    contents->data = data;
-    contents->size = size;
-
-    fclose(file);
-
-    return true;
+bool IsFont(std::shared_ptr<Font> &font, const std::string& fontFamily, FontStyle fontStyle, FontWeight fontWeight) {
+    return (font->GetFontFamily() == fontFamily && font->GetFontWeight() == fontWeight && font->GetFontStyle() == fontStyle);
 }
 
-void FreeFileContents(FileContents *contents) {
-    if (contents && contents->data) {
-        delete [] contents->data;
-        contents->data = nullptr;
+bool IsFontSample(std::shared_ptr<FontSample> &sample, const std::string& fontFamily, FontStyle fontStyle, FontWeight fontWeight, int fontSize) {
+    return (sample->GetFontFamily() == fontFamily && sample->GetFontWeight() == fontWeight && sample->GetFontStyle() == fontStyle && sample->GetFontSize() == fontSize);
+}
+
+std::shared_ptr<Font> FindFont(const std::string& fontFamily, FontStyle fontStyle, FontWeight fontWeight) {
+    for (auto &font : sFonts) {
+        if (IsFont(font, fontFamily, fontStyle, fontWeight)) {
+            return font;
+        }
     }
+
+    return std::shared_ptr<Font>(nullptr);
 }
 
-class Font : public Napi::ObjectWrap<Font> {
- public:
-  static Napi::Object Init(Napi::Env env, Napi::Object exports);
-  Font(const Napi::CallbackInfo& info);
+std::shared_ptr<FontSample> FindSample(const std::string& fontFamily, FontStyle fontStyle, FontWeight fontWeight, int fontSize) {
+    for (auto &sample : sSamples) {
+        if (IsFontSample(sample, fontFamily, fontStyle, fontWeight, fontSize)) {
+            return sample;
+        }
+    }
 
- private:
-  static Napi::FunctionReference constructor;
-  std::string familyName;
-
-  Napi::Value GetFamilyName(const Napi::CallbackInfo& info);
-};
-
-FunctionReference Font::constructor;
-
-Napi::Object Font::Init(Napi::Env env, Napi::Object exports) {
-  Napi::HandleScope scope(env);
-
-  Napi::Function func = DefineClass(env, "Font", {
-    InstanceMethod("getFamilyName", &Font::GetFamilyName),
-  });
-
-  constructor = Napi::Persistent(func);
-  constructor.SuppressDestruct();
-
-  exports.Set("Font", func);
-
-  return exports;
+    return std::shared_ptr<FontSample>(nullptr);
 }
 
-Font::Font(const Napi::CallbackInfo& info) : Napi::ObjectWrap<Font>(info)  {
+void FontStore::Install(const CallbackInfo& info) {
+    auto env = info.Env();
     auto file = info[0].As<String>().Utf8Value();
-    auto font = cmp::bmfont_parse_file(file.c_str());
+    auto fontFamily = info[1].As<String>().Utf8Value();
+    auto fontStyleString = info[2].As<String>().Utf8Value();
+    auto fontStyle = StringToFontStyle(fontStyleString);
+    auto fontWeightString = info[3].As<String>().Utf8Value();
+    auto fontWeight = StringToFontWeight(fontWeightString);
 
-    if (font) {
+    if (fontStyle == FONT_STYLE_UNKNOWN) {
+        throw Error::New(env, Format() << "Invalid fontStyle = " << fontStyleString );
+    }
 
-        this->familyName = std::string(font->font_name);
-        cmp::bmfont_free(font);
-    } else {
-        fprintf(stderr, "Failed to load font file. Reason: %s\n", cmp::bmfont_get_error_string());
-        // Other error handling goes here, including a return, exit, etc.
+    if (fontWeight == FONT_WEIGHT_UNKNOWN) {
+        throw Error::New(env, Format() << "Invalid fontWeight = " << fontWeightString );
+    }
 
-        FILE* fp = NULL;
-        size_t size;
-        unsigned char* data = NULL;
+    if (FindFont(fontFamily, fontStyle, fontWeight)) {
+        throw Error::New(env, Format() << "Font already exists. {" << file << ", " << fontFamily << ", " << fontStyleString << ", " << fontWeightString << "}");
+    }
 
-        fp = fopen(file.c_str(), "rb");
-        if (fp) {
-            fseek(fp, 0, SEEK_END);
-            size = ftell(fp);
-            fseek(fp, 0, SEEK_SET);
-            data = new unsigned char[size+1];
+    std::shared_ptr<Font> newFont;
 
-            if (data) {
-                if (fread(data, 1, size, fp) == size) {
-                    data[size] = '\0';	// Must be null terminated.
+    try {
+        newFont = std::make_shared<StbFont>(file, fontFamily, fontStyle, fontWeight);
+    } catch (std::exception &e) {
+        throw Error::New(env, Format() << "Failed to create font from file " << file);
+    } catch (...) {
+        throw Error::New(env, Format() << "Unknown error attempting to read font from file " << file);
+    }
 
-                    stbtt_fontinfo font;
+    sFonts.push_back(newFont);
+}
 
-                    const unsigned char *ttf = data;
+void FontStore::Uninstall(const CallbackInfo& info) {
+    auto env = info.Env();
+    auto fontFamily = info[0].As<String>().Utf8Value();
+    auto fontStyleString = info[1].As<String>().Utf8Value();
+    auto fontStyle = StringToFontStyle(fontStyleString);
+    auto fontWeightString = info[2].As<String>().Utf8Value();
+    auto fontWeight = StringToFontWeight(fontWeightString);
 
-                    if (!stbtt_InitFont(&font, ttf, stbtt_GetFontOffsetForIndex(ttf,0))) {
-                        fprintf(stdout, "Failed to init ttf file\n");
-                    } else {
-                        fprintf(stdout, "Opened ttf file\n");
-//                        const char *name;
-//                        int len = 0;
-//
-//                        name = stbtt_GetFontNameString(&font, &len, STBTT_PLATFORM_ID_MAC, 0, 0, 1);
-//                        char target[32] = "";
-//                        strncpy ( target, name, len ) ;
-//                        fprintf(stdout, "%s - %i\n", name, len);
-                    }
-                }
-            }
+    if (fontStyle == FONT_STYLE_UNKNOWN) {
+        throw Error::New(env, Format() << "Invalid fontStyle = " << fontStyleString );
+    }
 
-            fclose(fp);
-        } else {
-            fprintf(stdout, "Failed to open ttf file\n");
+    if (fontWeight == FONT_WEIGHT_UNKNOWN) {
+        throw Error::New(env, Format() << "Invalid fontWeight = " << fontWeightString );
+    }
+
+    for (auto p = sFonts.begin(); p != sFonts.end(); p++) {
+        if (IsFont(*p, fontFamily, fontStyle, fontWeight)) {
+            sFonts.erase(p);
+            return;
         }
     }
 }
 
-Napi::Value Font::GetFamilyName(const Napi::CallbackInfo& info) {
-  Napi::Env env = info.Env();
-//  Napi::HandleScope scope(env);
+Value FontStore::Sample(const CallbackInfo& info) {
+    auto env = info.Env();
+    auto fontFamily = info[0].As<String>().Utf8Value();
+    auto fontStyleString = info[1].As<String>().Utf8Value();
+    auto fontStyle = StringToFontStyle(fontStyleString);
+    auto fontWeightString = info[2].As<String>().Utf8Value();
+    auto fontWeight = StringToFontWeight(fontWeightString);
+    auto fontSize = info[3].As<Number>().Int32Value();
 
-  return Napi::String::New(env, this->familyName);
-}
-
-Value JS_InstallFont(const CallbackInfo& info) {
-
-    // family, weight (normal, bold), style (normal, italic),
-    
-    auto filename = info[0].As<String>().Utf8Value();
-    auto bmf = cmp::bmfont_parse_file(filename.c_str());
-
-    if (bmf) {
-        fprintf(stdout, "Successfully loaded bitmap font.\n");
-    } else {
-        FileContents contents;
-
-        if (!LoadFileContents(filename, &contents)) {
-            throw Error::New(info.Env(), "Failed to load font file.");
-        }
-
-        auto ttf = contents.data;
-        stbtt_fontinfo font;
-
-        if (stbtt_InitFont(&font, ttf, stbtt_GetFontOffsetForIndex(ttf, 0))) {
-            fprintf(stdout, "Successfully loaded true type font.\n");
-        } else {
-            fprintf(stdout, "Failed to load font file.\n");
-        }
-
-        FreeFileContents(&contents);
+    if (fontStyle == FONT_STYLE_UNKNOWN) {
+        throw Error::New(env, Format() << "Invalid fontStyle = " << fontStyleString );
     }
 
-    return info.Env().Undefined();
+    if (fontWeight == FONT_WEIGHT_UNKNOWN) {
+        throw Error::New(env, Format() << "Invalid fontWeight = " << fontWeightString );
+    }
+
+    if (fontSize <= 0) {
+        throw Error::New(env, "fontSize must be greater than 0.");
+    }
+
+    auto font = FindFont(fontFamily, fontStyle, fontWeight);
+
+    if (!font) {
+        throw Error::New(env, Format() << "No font installed for  {" << fontFamily << ", " << fontStyleString << ", " << fontWeightString << "}");
+    }
+
+    auto sample = FindSample(fontFamily, fontStyle, fontWeight, fontSize);
+
+    if (sample) {
+        return External<FontSample>::New(env, sample.get());
+    }
+
+    std::shared_ptr<FontSample> newSample;
+
+    try {
+        newSample = std::make_shared<StbFontSample>(font, fontSize);
+    } catch (std::exception &e) {
+        throw Error::New(env, Format() << "Error creating sample for " << fontFamily << ". " << e.what());
+    } catch (...) {
+        throw Error::New(env, Format() << "Unknown error attempting to create font sample for " << fontFamily);
+    }
+
+    sSamples.push_back(newSample);
+
+    return External<FontSample>::New(env, sSamples.back().get());
 }
 
-Value JS_FindFontMetrics(const CallbackInfo& info) {
-    return info.Env().Undefined();
-}
+Object FontStore::Init(class Env env, Object exports) {
+    auto fontStore = Object::New(env);
 
-Object FontInit(Env env, Object exports) {
-    exports["installFont"] = Function::New(env, JS_InstallFont, "installFont");
-    exports["findFontMetrics"] = Function::New(env, JS_FindFontMetrics, "findFontMetrics");
+    fontStore["install"] = Function::New(env, FontStore::Install, "install");
+    fontStore["uninstall"] = Function::New(env, FontStore::Uninstall, "uninstall");
+    fontStore["sample"] = Function::New(env, FontStore::Sample, "sample");
 
-    Font::Init(env, exports);
+    exports["FontStore"] = fontStore;
 
     return exports;
 }

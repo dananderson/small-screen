@@ -12,100 +12,69 @@
 #include <cstring>
 #include <cmath>
 #include <cstdlib>
-
-#define NANOSVG_ALL_COLOR_KEYWORDS
-#define NANOSVG_IMPLEMENTATION
+#include <exception>
 #include <nanosvg.h>
-
-#define NANOSVGRAST_IMPLEMENTATION
 #include <nanosvgrast.h>
-
-#define STBI_NO_FAILURE_STRINGS
-#define STBI_NO_PSD
-#define STBI_NO_PIC
-#define STBI_NO_PNM
-#define STBI_NO_HDR
-#define STBI_NO_TGA
-#define STBI_NO_LINEAR
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-
-#include <base64.h>
-
-#include "../common/Util.h"
+#include "Util.h"
 
 using namespace Napi;
 
 #define NUM_IMAGE_COMPONENTS 4
 
-float ScaleFactor(const int source, const int dest);
-void ToFormatLE(unsigned char *bytes, int len, int format);
-void ToFormatBE(unsigned char *bytes, int len, int format);
+void ToFormatLE(unsigned char *bytes, int len, TextureFormat format);
+void ToFormatBE(unsigned char *bytes, int len, TextureFormat format);
 
-LoadImageAsyncTask::LoadImageAsyncTask(std::shared_ptr<ThreadSafeCallback> callback,
-            const std::string& source,
-            unsigned char *sourceData,
-            int sourceDataSize,
-            SourceType sourceType,
-            int desiredWidth,
-            int desiredHeight,
-            int desiredFormat)
- : callback(callback),
-   data(nullptr),
-   dataSize(0),
-   source(source),
-   sourceData(sourceData),
-   sourceDataSize(sourceDataSize),
-   sourceType(sourceType),
-   desiredWidth(desiredWidth),
-   desiredHeight(desiredHeight),
-   desiredFormat(desiredFormat) {
-   
+inline float ScaleFactor(const int source, const int dest) {
+    return 1.f + ((dest - source) / (float)source);
 }
 
-bool LoadImageAsyncTask::Run() {
-    if (this->sourceType == XML) {
-        // note: nanosvg modifies the char buffer during parsing.
-        if (!this->LoadSvg(const_cast<char *>(this->source.c_str()), this->source.size())) {
-            return false;
-        }
-    } else if (this->sourceType == BASE64) {
-        std::shared_ptr<char> decoded;
-        int len = 0;
+LoadImageAsyncTask::LoadImageAsyncTask(std::shared_ptr<ThreadSafeCallback> callback,
+            Value source,
+            const std::string &sourceType,
+            int desiredWidth,
+            int desiredHeight,
+            TextureFormat desiredFormat)
+     : callback(callback),
+       data(nullptr),
+       dataSize(0),
+       source(),
+       sourceData(nullptr),
+       sourceDataSize(0),
+       sourceType(sourceType),
+       desiredWidth(desiredWidth),
+       desiredHeight(desiredHeight),
+       desiredFormat(desiredFormat) {
 
-        len = Base64::DecodedLength(this->source);
-        decoded.reset(new char[len + 1], std::default_delete<char[]>());
+    if (source.IsBuffer()) {
+        auto buffer = source.As<Buffer<unsigned char>>();
 
-        if (decoded == nullptr) {
-            this->error = std::string("Failed to allocate temporary buffer for Base64 decoding: ").append(this->GetSourceString());
-            return false;
-        }
+        sourceData = buffer.Data();
+        sourceDataSize = buffer.Length();
 
-        Base64::Decode(this->source.c_str(), this->source.size(), decoded.get(), len);
-
-        if (!this->LoadImage(reinterpret_cast<unsigned char *>(decoded.get()), len) && !this->LoadSvg(decoded.get(), len)) {
-            return false;
-        }
-    } else if (this->sourceDataSize > 0) {
-        if (!this->LoadImage(this->sourceData, this->sourceDataSize) && !this->LoadSvg(reinterpret_cast<char *>(this->sourceData), this->sourceDataSize)) {
-            return false;
-        }
+        this->ref = Persistent(source);
     } else {
-        if (!this->LoadImage(nullptr, 0) && !this->LoadSvg(nullptr, 0)) {
-            return false;
+        this->source = source.As<String>().Utf8Value();
+    }
+}
+
+void LoadImageAsyncTask::Run() {
+    if (this->sourceType == "utf8") {
+        // note: nanosvg modifies the char buffer during parsing.
+        this->LoadSvgImage(const_cast<char *>(this->source.c_str()), this->source.size());
+    } else {
+        try {
+            this->LoadRasterImage(this->sourceData, this->sourceDataSize);
+        } catch (std::exception e) {
+            this->LoadSvgImage(reinterpret_cast<char *>(this->sourceData), this->sourceDataSize);
         }
     }
 
-    // Convert to the desired format so after the graphics texture is created, we can just memcpy to the image to the texture.
-    if (this->desiredFormat >= FORMAT_MIN && this->desiredFormat <= FORMAT_MAX) {
-       if (IsBigEndian()) {
-           ToFormatBE(this->data, this->dataSize, this->desiredFormat);
-       } else {
-           ToFormatLE(this->data, this->dataSize, this->desiredFormat);
-       }
+    if (IsBigEndian()) {
+       ToFormatBE(this->data, this->dataSize, this->desiredFormat);
+    } else {
+       ToFormatLE(this->data, this->dataSize, this->desiredFormat);
     }
-
-    return true;
 }
 
 void LoadImageAsyncTask::Dispatch() {
@@ -113,16 +82,16 @@ void LoadImageAsyncTask::Dispatch() {
     auto dataSize = this->dataSize;
     auto width = this->width;
     auto height = this->height;
-    auto error = this->error;
 
-    callback->call<bool>([data, dataSize, width, height, error](Napi::Env env, std::vector<napi_value>& args) {
-        if (data == nullptr) {
-            args.push_back(Error::New(env, error).Value());
-        } else {
+    callback->call<bool>([data, dataSize, width, height](Napi::Env env, std::vector<napi_value>& args) {
+        if (data != nullptr) {
             args.push_back(env.Undefined());
+            // TODO: free happens in release()
             args.push_back(Buffer<unsigned char>::New(env, data, dataSize));
             args.push_back(Number::New(env, width));
             args.push_back(Number::New(env, height));
+        } else {
+            std::cerr << "Image data is null!" << std::endl;
         }
     }, [](const Value& val) -> bool {
         return val.As<Boolean>().Value();
@@ -137,7 +106,7 @@ void LoadImageAsyncTask::DispatchError(const std::string& message) {
     });
 }
 
-bool LoadImageAsyncTask::LoadImage(unsigned char *chunk, int chunkLen) {
+void LoadImageAsyncTask::LoadRasterImage(unsigned char *chunk, int chunkLen) {
     int components;
 
     if (chunk != nullptr) {
@@ -147,46 +116,42 @@ bool LoadImageAsyncTask::LoadImage(unsigned char *chunk, int chunkLen) {
             &this->width,
             &this->height,
             &components,
-            NUM_IMAGE_COMPONENTS);
+            NUM_IMAGE_COMPONENTS
+        );
 
     } else {
-        this->data = stbi_load(this->source.c_str(), &this->width, &this->height, &components, NUM_IMAGE_COMPONENTS);
+        this->data = stbi_load(
+            this->source.c_str(),
+            &this->width,
+            &this->height,
+            &components,
+            NUM_IMAGE_COMPONENTS
+        );
     }
 
     if (this->data == nullptr) {
-        this->error = std::string("Failed to load image: ").append(this->GetSourceString());
-        return false;
+        throw std::runtime_error("stbi_load failed.");
     }
 
     this->dataSize = this->width * this->height * NUM_IMAGE_COMPONENTS;
-
-    return true;
 }
 
-bool LoadImageAsyncTask::LoadSvg(char *chunk, int chunkLen) {
+void LoadImageAsyncTask::LoadSvgImage(char *chunk, int chunkLen) {
     NSVGimage* svg;
 
-    if (chunkLen != 0) {
+    if (chunk != nullptr) {
         svg = nsvgParse(chunk, "px", 96);
     } else {
         svg = nsvgParseFromFile(this->source.c_str(), "px", 96);
     }
 
     if (svg == nullptr) {
-        this->error = std::string("Failed to load image: ").append(this->GetSourceString());
-        return false;
+        throw std::runtime_error("Failed to parse SVG.");
     }
 
     if ((svg->width == 0 || svg->height == 0) && (desiredWidth == 0 && desiredHeight == 0)) {
-        this->error = std::string("SVG has no dimensions: ").append(this->GetSourceString());
-        return false;
-    }
-
-    auto rast = nsvgCreateRasterizer();
-
-    if (rast == nullptr) {
-        this->error = "Failed to create SVG rasterizer.";
-        return false;
+        nsvgDelete(svg);
+        throw std::runtime_error("SVG contains no dimensions.");
     }
 
     float scaleX;
@@ -209,8 +174,7 @@ bool LoadImageAsyncTask::LoadSvg(char *chunk, int chunkLen) {
 
     if (this->data == nullptr) {
         nsvgDelete(svg);
-        this->error = std::string("Failed to allocate surface memory for SVG image: ").append(this->GetSourceString());
-        return false;
+        throw std::runtime_error("Failed to allocate surface memory for SVG image.");
     }
 
     auto rasterizer = nsvgCreateRasterizer();
@@ -219,8 +183,7 @@ bool LoadImageAsyncTask::LoadSvg(char *chunk, int chunkLen) {
         free(this->data);
         this->data = nullptr;
         nsvgDelete(svg);
-        this->error = std::string("Failed to create rasterizer SVG image: ").append(this->GetSourceString());
-        return false;
+        throw std::runtime_error("Failed to create rasterizer SVG image.");
     }
 
     nsvgRasterizeFull(rasterizer,
@@ -236,110 +199,97 @@ bool LoadImageAsyncTask::LoadSvg(char *chunk, int chunkLen) {
 
     nsvgDeleteRasterizer(rasterizer);
     nsvgDelete(svg);
-    this->error.clear();
-
-    return true;
 }
 
-std::string LoadImageAsyncTask::GetSourceString() {
-    auto len = this->source.size();
-    auto prefix = std::string();
+inline void swap(unsigned char *bytes, int a, int b) {
+    unsigned char t = bytes[a];
 
-    if (sourceType == BASE64) {
-        prefix = "base64://";
-    } else if (sourceType == XML) {
-        prefix = "xml://";
-    } else {
-        return this->source;
-    }
-
-    return prefix.append(len > 100 ? this->source.substr(0, 100).append("...") : this->source);
+    bytes[a] = bytes[b];
+    bytes[b] = t;
 }
 
-float ScaleFactor(const int source, const int dest) {
-    return 1.f + (((float)dest - (float)source) / (float)source);
-}
+#define R 0
+#define G 1
+#define B 2
+#define A 3
 
-void ToFormatLE(unsigned char *bytes, int len, int format) {
+void ToFormatLE(unsigned char *bytes, int len, TextureFormat format) {
     auto i = 0;
     unsigned char r, g, b, a;
 
-    while (i < len) {
-        r = bytes[i];
-        g = bytes[i + 1];
-        b = bytes[i + 2];
-        a = bytes[i + 3];
+    switch(format) {
+        case TEXTURE_FORMAT_ARGB:
+            while (i < len) {
+                swap(bytes, i + R, i + B);
+                i += NUM_IMAGE_COMPONENTS;
+            }
+            break;
+        case TEXTURE_FORMAT_BGRA:
+            while (i < len) {
+                r = bytes[i + R];
+                g = bytes[i + G];
+                b = bytes[i + B];
+                a = bytes[i + A];
 
-        switch(format) {
-            case FORMAT_ABGR:
-                bytes[i    ] = r;
-                bytes[i + 1] = g;
-                bytes[i + 2] = b;
-                bytes[i + 3] = a;
-                break;
-            case FORMAT_ARGB:
-                bytes[i    ] = b;
-                bytes[i + 1] = g;
-                bytes[i + 2] = r;
-                bytes[i + 3] = a;
-                break;
-            case FORMAT_BGRA:
                 bytes[i    ] = a;
                 bytes[i + 1] = r;
                 bytes[i + 2] = g;
                 bytes[i + 3] = b;
-                break;
-            case FORMAT_RGBA:
-            default:
-                bytes[i    ] = a;
-                bytes[i + 1] = b;
-                bytes[i + 2] = g;
-                bytes[i + 3] = r;
-                break;
-        }
 
-        i += NUM_IMAGE_COMPONENTS;
+                i += NUM_IMAGE_COMPONENTS;
+            }
+            break;
+        case TEXTURE_FORMAT_RGBA:
+            while (i < len) {
+                swap(bytes, i + R, i + A);
+                swap(bytes, i + G, i + B);
+
+                i += NUM_IMAGE_COMPONENTS;
+            }
+            break;
+        default:
+            // TEXTURE_FORMAT_ABGR - no op in LE
+            break;
     }
+
 }
 
-void ToFormatBE(unsigned char *bytes, int len, int format) {
+void ToFormatBE(unsigned char *bytes, int len, TextureFormat format) {
     auto i = 0;
     unsigned char r, g, b, a;
 
-    while (i < len) {
-        r = bytes[i];
-        g = bytes[i + 1];
-        b = bytes[i + 2];
-        a = bytes[i + 3];
+    switch(format) {
+        case TEXTURE_FORMAT_ABGR:
+            while (i < len) {
+                swap(bytes, i + A, i + R);
+                swap(bytes, i + G, i + B);
+                i += NUM_IMAGE_COMPONENTS;
+            }
+            break;
+        case TEXTURE_FORMAT_ARGB:
+            while (i < len) {
+                r = bytes[i + R];
+                g = bytes[i + G];
+                b = bytes[i + B];
+                a = bytes[i + A];
 
-        switch(format) {
-            case FORMAT_ABGR:
-                bytes[i    ] = a;
-                bytes[i + 1] = b;
-                bytes[i + 2] = g;
-                bytes[i + 3] = r;
-                break;
-            case FORMAT_ARGB:
                 bytes[i    ] = a;
                 bytes[i + 1] = r;
                 bytes[i + 2] = g;
                 bytes[i + 3] = b;
-                break;
-            case FORMAT_BGRA:
-                bytes[i    ] = b;
-                bytes[i + 1] = g;
-                bytes[i + 2] = r;
-                bytes[i + 3] = a;
-                break;
-            case FORMAT_RGBA:
-            default:
-                bytes[i    ] = r;
-                bytes[i + 1] = g;
-                bytes[i + 2] = b;
-                bytes[i + 3] = a;
-                break;
-        }
 
-        i += NUM_IMAGE_COMPONENTS;
+                i += NUM_IMAGE_COMPONENTS;
+            }
+            break;
+        case TEXTURE_FORMAT_BGRA:
+            while (i < len) {
+                swap(bytes, i + R, i + B);
+                i += NUM_IMAGE_COMPONENTS;
+            }
+            break;
+        case TEXTURE_FORMAT_RGBA:
+        default:
+            // TEXTURE_FORMAT_RGBA - noop in BE
+            break;
     }
 }

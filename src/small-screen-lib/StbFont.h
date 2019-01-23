@@ -10,44 +10,20 @@
 #include "Font.h"
 #include <stb_truetype.h>
 #include <string>
+#include <vector>
+
+class StbFontSample;
 
 class StbFont : public Font {
-    public:
-
+public:
+    StbFont(const std::string& file, const std::string& fontFamily, FontStyle fontStyle, FontWeight fontWeight);
     virtual ~StbFont();
 
-    stbtt_fontinfo *GetFontInfo();
-    unsigned char *GetTTF();
-    FontMetrics *GetFontMetrics(const int size);
-    static StbFont *Load(const std::string& filename, const std::string& fontFamily);
-    static StbFont *Load( unsigned char *ttf, size_t ttfLen, const std::string& fontFamily);
+private:
+    stbtt_fontinfo fontInfo;
+    std::vector<unsigned char> ttf;
 
-    private:
-
-    StbFont(const stbtt_fontinfo& info, unsigned char *ttf, const std::string& fontFamily);
-
-    stbtt_fontinfo info;
-    unsigned char *ttf;
-};
-
-class StbFontMetrics : public FontMetrics {
-    public:
-
-    virtual ~StbFontMetrics();
-
-    static StbFontMetrics *Load(StbFont *font, const int fontSize);
-
-    private:
-
-    StbFontMetrics(StbFont *font, const int fontSize,
-            unsigned char *surface, int surfaceWidth, int surfaceHeight,
-            stbtt_packedchar *charInfo, int charCount);
-
-    unsigned char *surface;
-    int surfaceWidth;
-    int surfaceHeight;
-    stbtt_packedchar *charInfo;
-    int charCount;
+    friend StbFontSample;
 };
 
 #endif

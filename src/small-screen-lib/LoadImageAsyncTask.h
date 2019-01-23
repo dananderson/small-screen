@@ -8,35 +8,21 @@
 #define LOADIMAGEASYNCTASK_H
 
 #include "AsyncTask.h"
+#include "TextureFormat.h"
+#include "napi.h"
 #include <napi-thread-safe-callback.hpp>
 #include <string>
 
-#define FORMAT_RGBA 0
-#define FORMAT_ARGB 1
-#define FORMAT_ABGR 2
-#define FORMAT_BGRA 3
-#define FORMAT_MIN 1
-#define FORMAT_MAX 3
-
-enum SourceType {
-    XML,
-    BASE64,
-    FILENAME,
-};
-
-// Loads images (SVG, PNG, JPG, GIF, BMP) from file, SVG XML or Base64 string.
 class LoadImageAsyncTask : public AsyncTask {
 public:
     LoadImageAsyncTask(std::shared_ptr<ThreadSafeCallback> callback,
-                const std::string& source,
-                unsigned char *sourceData,
-                int sourceDataSize,
-                SourceType sourceType,
+                Napi::Value source,
+                const std::string &sourceType,
                 int desiredWidth,
                 int desiredHeight,
-                int desiredFormat);
+                TextureFormat desiredFormat);
 
-    bool Run();
+    void Run();
     void Dispatch();
     void DispatchError(const std::string& message);
 
@@ -47,17 +33,16 @@ private:
     std::string source;
     unsigned char *sourceData;
     int sourceDataSize;
-    std::string error;
-    SourceType sourceType;
+    std::string sourceType;
     int width;
     int height;
     int desiredWidth;
     int desiredHeight;
-    int desiredFormat;
+    TextureFormat desiredFormat;
+    Napi::Reference<Napi::Value> ref;
 
-    bool LoadImage(unsigned char *chunk, int chunkLen);
-    bool LoadSvg(char *chunk, int chunkLen);
-    std::string GetSourceString();
+    void LoadRasterImage(unsigned char *chunk, int chunkLen);
+    void LoadSvgImage(char *chunk, int chunkLen);
 };
 
 #endif

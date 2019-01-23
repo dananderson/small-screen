@@ -8,28 +8,13 @@
 #define FONTSTORE_H
 
 #include "napi.h"
-#include <vector>
 
-class Font;
+namespace FontStore {
+    Napi::Object Init(Napi::Env env, Napi::Object exports);
 
-class FontStore : public Napi::ObjectWrap<FontStore> {
-public:
-
-    static Napi::Object Init(Napi::Env env, Napi::Object exports);
-
-    FontStore(const Napi::CallbackInfo& info);
-    ~FontStore() {}
-    
-    Napi::Value InstallFont(const Napi::CallbackInfo& info);
-    Napi::Value CreateFontSample(const Napi::CallbackInfo& info);
-
-private:
-
-    static Napi::FunctionReference constructor;
-    std::vector<Font *> fonts;
+    void Install(const Napi::CallbackInfo& info);
+    void Uninstall(const Napi::CallbackInfo& info);
+    Napi::Value Sample(const Napi::CallbackInfo& info);
 };
-
-Napi::Value Install(const Napi::CallbackInfo& info);
-Napi::Value Sample(const Napi::CallbackInfo& info);
 
 #endif

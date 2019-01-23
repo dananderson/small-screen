@@ -7,13 +7,20 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <arpa/inet.h>
+#include <cstdint>
 #include <string>
+#include <vector>
+#include <cmath>
 
 inline bool IsBigEndian() {
-    return htonl(47) == 47;
+    uint32_t i = 1;
+    return ! *((uint8_t *)&i);
 }
 
-bool ReadFileContents(const std::string& filename, unsigned char **data, size_t *dataSize);
+inline int clamp(float i) {
+    return floor(i + 0.5f);
+}
+
+void ReadBytesFromFile(const std::string filename, std::vector<unsigned char>& target);
 
 #endif

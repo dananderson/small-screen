@@ -162,6 +162,13 @@ abbrev@1:
   resolved "http://192.168.1.12:4873/abbrev/-/abbrev-1.1.1.tgz#f8f2c887ad10bf67f634f005b6987fed3179aac8"
   integrity sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==
 
+abort-controller@^2.0.0:
+  version "2.0.0"
+  resolved "http://192.168.1.71:4873/abort-controller/-/abort-controller-2.0.0.tgz#649f2e9793e3510e8a4c7f97f0bf2f5652286620"
+  integrity sha512-+4RmySoSV9PRMNqFOQSNfEt9jmXZnETmtBCH7oWBWhHxVPBqVSyYf57K7FK2s/eZC1LSmg421mettynmCDX45g==
+  dependencies:
+    event-target-shim "^4.0.3"
+
 acorn-jsx@^5.0.0:
   version "5.0.1"
   resolved "http://192.168.1.12:4873/acorn-jsx/-/acorn-jsx-5.0.1.tgz#32a064fd925429216a09b141102bfdd185fae40e"
@@ -1972,6 +1979,11 @@ esutils@^2.0.2:
   resolved "http://192.168.1.12:4873/esutils/-/esutils-2.0.2.tgz#0abf4f1caa5bcb1f7a9d8acc6dea4faaa04bac9b"
   integrity sha1-Cr9PHKpbyx96nYrMbepPqqBLrJs=
 
+event-target-shim@^4.0.3:
+  version "4.0.3"
+  resolved "http://192.168.1.71:4873/event-target-shim/-/event-target-shim-4.0.3.tgz#758cd632cd4241f5a73ceec64f93f0d7b0ae77d6"
+  integrity sha512-YXVJDPGzU0yhSzrXGoEFAByEaLnZXSlJDHXkq4Hp6WrlnV66tADiZugYf1utTaCP/dsYRcLndAhecbq9mnbbqg==
+
 execa@^0.7.0:
   version "0.7.0"
   resolved "http://192.168.1.12:4873/execa/-/execa-0.7.0.tgz#944becd34cc41ee32a63a9faf27ad5a65fc59777"
@@ -2675,6 +2687,11 @@ is-typedarray@~1.0.0:
   resolved "http://192.168.1.12:4873/is-typedarray/-/is-typedarray-1.0.0.tgz#e479c80858df0c1b11ddda6940f96011fcda4a9a"
   integrity sha1-5HnICFjfDBsR3dppQPlgEfzaSpo=
 
+is-url@^1.2.4:
+  version "1.2.4"
+  resolved "http://192.168.1.12:4873/is-url/-/is-url-1.2.4.tgz#04a4df46d28c4cff3d73d01ff06abeb318a1aa52"
+  integrity sha512-ITvGim8FhRiYe4IQ5uHSkj7pVaPDrCTkNd3yq3cV7iZAcJdHTUMPMEHcqSOy9xZ9qFenQCvi+2wjH9a1nXqHww==
+
 is-utf8@^0.2.0:
   version "0.2.1"
   resolved "http://192.168.1.12:4873/is-utf8/-/is-utf8-0.2.1.tgz#4b0da1442104d1b336340e80797e865cf39f7d72"
@@ -3128,6 +3145,11 @@ node-fetch@^1.0.1:
     encoding "^0.1.11"
     is-stream "^1.0.1"
 
+node-fetch@^2.3.0:
+  version "2.3.0"
+  resolved "http://192.168.1.12:4873/node-fetch/-/node-fetch-2.3.0.tgz#1a1d940bbfb916a1d3e0219f037e89e71f8c5fa5"
+  integrity sha512-MOd8pV3fxENbryESLgVIeaGKrdl+uaYhCSSVkjeOb/31/njTpcis5aWfdqgNlHIrKOLRbMnfPINPOML2CIFeXA==
+
 node-gyp@^3.6.2:
   version "3.8.0"
   resolved "http://192.168.1.12:4873/node-gyp/-/node-gyp-3.8.0.tgz#540304261c330e80d0d5edce253a68cb3964218c"
@@ -3297,11 +3319,6 @@ package-json@^4.0.0:
     registry-auth-token "^3.0.1"
     registry-url "^3.0.3"
     semver "^5.1.0"
-
-parse-bmfont-ascii@^1.0.6:
-  version "1.0.6"
-  resolved "http://192.168.1.12:4873/parse-bmfont-ascii/-/parse-bmfont-ascii-1.0.6.tgz#11ac3c3ff58f7c2020ab22769079108d4dfa0285"
-  integrity sha1-Eaw8P/WPfCAgqyJ2kHkQjU36AoU=
 
 parse-glob@^3.0.4:
   version "3.0.4"

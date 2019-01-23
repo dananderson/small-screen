@@ -13,7 +13,7 @@ class AsyncTask {
 public:
     virtual ~AsyncTask() {}
 
-    virtual bool Run() = 0;
+    virtual void Run() = 0;
     virtual void Dispatch() = 0;
     virtual void DispatchError(const std::string& message) = 0;
 };

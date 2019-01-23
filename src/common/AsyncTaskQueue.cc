@@ -9,32 +9,31 @@
 #include <blockingconcurrentqueue.h>
 #include <vector>
 #include <thread>
-#include <iostream>
-#include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <iostream>
+#include <memory>
 
 // Flag indicating that the consumers are running and actively processing items from the image load request queue.
 std::atomic<bool> sRunning (true);
 
 // The javascript load() method will add image load requests to this queue. Consumers will wait on the queue
 // for the next item.
-moodycamel::BlockingConcurrentQueue<AsyncTask *> sLoadRequests;
+moodycamel::BlockingConcurrentQueue<std::shared_ptr<AsyncTask>> sLoadRequests;
 
 // Pool of image load request processors. Each consumer will continue to run as long as sRunning is true and
 // the queue does not return a null Task.
-std::vector<std::thread*> sConsumers;
+std::vector<std::shared_ptr<std::thread>> sConsumers;
 
 void AsyncTaskQueue::Join() {
     // Wake up the consumers by putting a null request in the queue. When a consumer dequeues null, it immediately
     // exits. sConsumers.size() nulls will shutdown all consumers.
     for (size_t i = 0; i < sConsumers.size(); i++) {
-        sLoadRequests.enqueue(nullptr);
+        sLoadRequests.enqueue(std::shared_ptr<AsyncTask>());
     }
 
     for (size_t i = 0; i < sConsumers.size(); i++) {
         sConsumers[i]->join();
-        delete sConsumers[i];
     }
 
     sConsumers.clear();
@@ -44,24 +43,25 @@ void AsyncTaskWorker () {
     moodycamel::ConsumerToken t(sLoadRequests);
 
     while (sRunning) {
-        AsyncTask *value;
+        std::shared_ptr<AsyncTask> task;
 
-        sLoadRequests.wait_dequeue(t, value);
+        sLoadRequests.wait_dequeue(t, task);
 
-        if (!sRunning || value == nullptr) {
+        if (!sRunning || task == nullptr) {
             break;
         }
 
         try {
-            value->Run();
-        } catch (std::exception e) {
-            value->DispatchError(std::string("Task::Run - Internal error: ").append(e.what()));
-            break;
+            task->Run();
+        } catch (std::exception& e) {
+            task->DispatchError(e.what());
+            continue;
+        } catch (...) {
+            task->DispatchError("Unknown async worker exception.");
+            continue;
         }
 
-        value->Dispatch();
-
-        delete value;
+        task->Dispatch();
     }
 }
 
@@ -89,11 +89,11 @@ void AsyncTaskQueue::SetThreadPoolSize(size_t size) {
     AsyncTaskQueue::Join();
 
     for (size_t i = 0; i < size; i++) {
-        sConsumers.push_back(new std::thread(AsyncTaskWorker));
+        sConsumers.push_back(std::make_shared<std::thread>(AsyncTaskWorker));
     }
 }
 
-void AsyncTaskQueue::Enqueue(AsyncTask *task) {
+void AsyncTaskQueue::Enqueue(std::shared_ptr<AsyncTask> task) {
     sLoadRequests.enqueue(task);
 }
 

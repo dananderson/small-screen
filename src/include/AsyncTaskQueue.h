@@ -8,12 +8,13 @@
 #define ASYNCTASKQUEUE_H
 
 #include "AsyncTask.h"
+#include <memory>
 
 namespace AsyncTaskQueue {
     void Join();
     int GetThreadPoolSize();
     void SetThreadPoolSize(size_t size);
-    void Enqueue(AsyncTask *task);
+    void Enqueue(std::shared_ptr<AsyncTask> task);
     void Close();
 }
 

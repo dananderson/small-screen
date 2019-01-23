@@ -5,9 +5,11 @@
  */
 
 #include "Font.h"
+#include "Format.h"
+#include <exception>
 
-Font::Font(const std::string& fontFamily)
-    : fontFamily(fontFamily), fontStyle(FONT_STYLE_NORMAL), fontWeight(FONT_WEIGHT_NORMAL) {
+Font::Font(const std::string& fontFamily, FontStyle fontStyle, FontWeight fontWeight)
+    : fontFamily(fontFamily), fontStyle(fontStyle), fontWeight(fontWeight) {
 
 }
 
@@ -25,4 +27,25 @@ FontStyle Font::GetFontStyle() const {
 
 FontWeight Font::GetFontWeight() const {
     return this->fontWeight;
+}
+
+
+FontStyle StringToFontStyle(const std::string fontStyle) {
+    if (fontStyle == "normal") {
+        return FONT_STYLE_NORMAL;
+    } else if (fontStyle == "italic") {
+        return FONT_STYLE_ITALIC;
+    }
+
+    return FONT_STYLE_UNKNOWN;
+}
+
+FontWeight StringToFontWeight(const std::string fontWeight) {
+    if (fontWeight == "normal") {
+        return FONT_WEIGHT_NORMAL;
+    } else if (fontWeight == "bold") {
+        return FONT_WEIGHT_BOLD;
+    }
+
+    return FONT_WEIGHT_UNKNOWN;
 }
