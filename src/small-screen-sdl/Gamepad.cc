@@ -35,7 +35,9 @@ Object Gamepad::Init(Napi::Env env, Object exports) {
 
 Gamepad::Gamepad(const CallbackInfo& info)
         : ObjectWrap<Gamepad>(info), joystick(nullptr), id(-1), axisCount(0), buttonCount(0), hatCount(0) {
-    this->joystick = SDL_JoystickOpen(info[0].As<Number>().Int32Value());
+    auto index = info[0].As<Number>().Int32Value();
+
+    this->joystick = SDL_JoystickOpen(index);
 
     if (!this->joystick) {
         throw Error::New(info.Env(), Format() << "Failed to open joystick at index " << index << ". " << SDL_GetError());

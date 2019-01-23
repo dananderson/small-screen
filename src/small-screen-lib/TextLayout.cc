@@ -34,7 +34,7 @@ inline void AppendCharacterQuad(std::vector<CharacterQuad> &quads, const Codepoi
    ));
 }
 
-inline float Ellipsize(bool ellipsize, const CodepointMetrics *ellipsis, int ellipsisRepeat, float ascent, std::vector<CharacterQuad> &quads, int ellipsisIndex) {
+inline float Ellipsize(bool ellipsize, const CodepointMetrics *ellipsis, int ellipsisRepeat, float ascent, std::vector<CharacterQuad> &quads, int ellipsisIndex, float ellipsisCursor) {
     auto result = 0.f;
 
     if (ellipsize && ellipsisIndex != -1) {
@@ -47,7 +47,7 @@ inline float Ellipsize(bool ellipsize, const CodepointMetrics *ellipsis, int ell
         result = ellipsis->xAdvance * ellipsisRepeat;
     }
 
-    return result;
+    return ellipsisCursor + result;
 }
 
 inline void AddLineAlignmentOffset(std::vector<std::vector<float>> &target, float width, float lineWidth) {
@@ -158,7 +158,7 @@ void TextLayout::Layout(
                 this->quads.push_back(CharacterQuad::NEW_LINE);
                 continue;
             } else {
-                cursor += Ellipsize(ellipsize, ellipsis, ellipsisRepeat, ascent, this->quads, ellipsisIndex);
+                cursor = Ellipsize(ellipsize, ellipsis, ellipsisRepeat, ascent, this->quads, ellipsisIndex, ellipsisCursor);
                 break;
             }
         }
@@ -188,7 +188,7 @@ void TextLayout::Layout(
                     // Write a new line instead of a space, so the line has no trailing spaces.
                     this->quads.push_back(CharacterQuad::NEW_LINE);
                 } else {
-                    cursor += Ellipsize(ellipsize, ellipsis, ellipsisRepeat, ascent, this->quads, ellipsisIndex);
+                    cursor = Ellipsize(ellipsize, ellipsis, ellipsisRepeat, ascent, this->quads, ellipsisIndex, ellipsisCursor);
                     break;
                 }
             } else {
@@ -237,7 +237,7 @@ void TextLayout::Layout(
 
                 y += lineHeight;
             } else {
-                cursor += Ellipsize(ellipsize, ellipsis, ellipsisRepeat, ascent, this->quads, ellipsisIndex);
+                cursor = Ellipsize(ellipsize, ellipsis, ellipsisRepeat, ascent, this->quads, ellipsisIndex, ellipsisCursor);
                 break;
             }
         }
