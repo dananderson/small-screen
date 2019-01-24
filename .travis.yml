@@ -17,21 +17,21 @@ addons:
 
 before_install:
   - |
-    if [ ! -d "$HOME/SDL2-2.0.8" ]; then
-      travis_retry curl -L https://www.libsdl.org/release/SDL2-2.0.8.tar.gz | tar xz --directory "$HOME"
-      cd "$HOME/SDL2-2.0.8"
+    if [ ! -d "$HOME/SDL2/SDL2-2.0.8" ]; then
+      travis_retry curl -L https://www.libsdl.org/release/SDL2-2.0.8.tar.gz | tar xz --directory "$HOME/SDL2"
+      cd "$HOME/SDL2/SDL2-2.0.8"
       ./configure
       make
     fi
-    cd "$HOME/SDL2-2.0.8"
+    cd "$HOME/SDL2/SDL2-2.0.8"
     sudo make install
-    if [ ! -d "$HOME/SDL2_mixer-2.0.4" ]; then
-      travis_retry curl -L https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-2.0.4.tar.gz | tar xz --directory "$HOME"
-      cd "$HOME/SDL2_mixer-2.0.4"
+    if [ ! -d "$HOME/SDL2/SDL2_mixer-2.0.4" ]; then
+      travis_retry curl -L https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-2.0.4.tar.gz | tar xz --directory "$HOME/SDL2"
+      cd "$HOME/SDL2/SDL2_mixer-2.0.4"
       ./configure --disable-sdltest --with-sdl-prefix=/usr/local
       make
     fi
-    cd "$HOME/SDL2_mixer-2.0.4"
+    cd "$HOME/SDL2/SDL2_mixer-2.0.4"
     sudo make install
     cd $TRAVIS_BUILD_DIR
   - sudo ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
@@ -49,5 +49,4 @@ script:
 
 cache:
   directories:
-    - $HOME/SDL2-2.0.8
-    - $HOME/SDL2_mixer-2.0.4
+    - $HOME/SDL2
