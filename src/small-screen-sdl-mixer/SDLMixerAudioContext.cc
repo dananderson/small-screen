@@ -59,6 +59,10 @@ void SDLMixerAudioContext::InitAudio(Napi::Env env) {
     std::cout << "Supported audio sample types: ";
 
     for (auto i = 0; i < Mix_GetNumChunkDecoders(); i++) {
+        if (i != 0) {
+            std::cout << ", ";
+        }
+
         std::cout << Mix_GetChunkDecoder(i);
     }
 

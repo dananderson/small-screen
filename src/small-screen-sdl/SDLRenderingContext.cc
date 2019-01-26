@@ -4,7 +4,7 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-#include "RenderingContext.h"
+#include "SDLRenderingContext.h"
 #include "Util.h"
 #include "FontSample.h"
 #include "TextLayout.h"
@@ -15,38 +15,38 @@ using namespace Napi;
 inline void SetTextureTintColor(SDL_Texture *texture, Uint32 color, int opacity);
 inline void SetRenderDrawColor(SDL_Renderer *renderer, Uint32 color, int opacity);
 
-FunctionReference RenderingContext::constructor;
+FunctionReference SDLRenderingContext::constructor;
 
-Object RenderingContext::Init(Napi::Env env, Object exports) {
-  Function func = DefineClass(env, "RenderingContext", {
-    InstanceMethod("pushStyle", &RenderingContext::PushStyle),
-    InstanceMethod("popStyle", &RenderingContext::PopStyle),
-    InstanceMethod("_reset", &RenderingContext::Reset),
-    InstanceMethod("pushClipRect", &RenderingContext::PushClipRect),
-    InstanceMethod("popClipRect", &RenderingContext::PopClipRect),
-    InstanceMethod("blit", &RenderingContext::Blit),
-    InstanceMethod("shift", &RenderingContext::Shift),
-    InstanceMethod("unshift", &RenderingContext::Unshift),
-    InstanceMethod("border", &RenderingContext::Border),
-    InstanceMethod("fillRect", &RenderingContext::FillRect),
-    InstanceMethod("blitCapInsets", &RenderingContext::BlitCapInsets),
-    InstanceMethod("drawText", &RenderingContext::DrawText),
+Object SDLRenderingContext::Init(Napi::Env env, Object exports) {
+  Function func = DefineClass(env, "SDLRenderingContext", {
+    InstanceMethod("pushStyle", &SDLRenderingContext::PushStyle),
+    InstanceMethod("popStyle", &SDLRenderingContext::PopStyle),
+    InstanceMethod("_reset", &SDLRenderingContext::Reset),
+    InstanceMethod("pushClipRect", &SDLRenderingContext::PushClipRect),
+    InstanceMethod("popClipRect", &SDLRenderingContext::PopClipRect),
+    InstanceMethod("blit", &SDLRenderingContext::Blit),
+    InstanceMethod("shift", &SDLRenderingContext::Shift),
+    InstanceMethod("unshift", &SDLRenderingContext::Unshift),
+    InstanceMethod("border", &SDLRenderingContext::Border),
+    InstanceMethod("fillRect", &SDLRenderingContext::FillRect),
+    InstanceMethod("blitCapInsets", &SDLRenderingContext::BlitCapInsets),
+    InstanceMethod("drawText", &SDLRenderingContext::DrawText),
   });
 
   constructor = Persistent(func);
   constructor.SuppressDestruct();
 
-  exports.Set("RenderingContext", func);
+  exports.Set("SDLRenderingContext", func);
   
   return exports;
 }
 
-RenderingContext::RenderingContext(const CallbackInfo& info)
-    : ObjectWrap<RenderingContext>(info), wx(0), wy(0), opacity(255), color(0), backgroundColor(0), borderColor(0), tintColor(0xFFFFFF) {
+SDLRenderingContext::SDLRenderingContext(const CallbackInfo& info)
+    : ObjectWrap<SDLRenderingContext>(info), wx(0), wy(0), opacity(255), color(0), backgroundColor(0), borderColor(0), tintColor(0xFFFFFF) {
 
 }
 
-void RenderingContext::PushStyle(const CallbackInfo& info) {
+void SDLRenderingContext::PushStyle(const CallbackInfo& info) {
     this->opacityStack.push_back(this->opacity);
 
     if (info[0].IsNumber()) {
@@ -61,16 +61,16 @@ void RenderingContext::PushStyle(const CallbackInfo& info) {
     this->tintColor = info[4].As<Number>().Int32Value();
 }
 
-void RenderingContext::PopStyle(const CallbackInfo& info) {
+void SDLRenderingContext::PopStyle(const CallbackInfo& info) {
     if (this->opacityStack.empty()) {
-        throw Error::New(info.Env(), "RenderingContext.ClearStyle(): Opacity stack should not be empty!");
+        throw Error::New(info.Env(), "SDLRenderingContext.ClearStyle(): Opacity stack should not be empty!");
     }
 
     this->opacity = this->opacityStack.back();
     this->opacityStack.pop_back();
 }
 
-Value RenderingContext::Reset(const CallbackInfo& info) {
+Value SDLRenderingContext::Reset(const CallbackInfo& info) {
     this->renderer = info[0].As<External<SDL_Renderer>>().Data();
     this->opacity = 255;
     this->wx = this->wy = 0;
@@ -85,7 +85,7 @@ Value RenderingContext::Reset(const CallbackInfo& info) {
     return info.This();
 }
 
-void RenderingContext::PushClipRect(const CallbackInfo& info) {
+void SDLRenderingContext::PushClipRect(const CallbackInfo& info) {
     SDL_Rect rect = {
         info[0].As<Number>().Int32Value() + this->wx,
         info[1].As<Number>().Int32Value() + this->wy,
@@ -107,9 +107,9 @@ void RenderingContext::PushClipRect(const CallbackInfo& info) {
     SDL_RenderSetClipRect(this->renderer, clipRect);
 }
 
-void RenderingContext::PopClipRect(const CallbackInfo& info) {
+void SDLRenderingContext::PopClipRect(const CallbackInfo& info) {
     if (this->clipRectStack.empty()) {
-        throw Error::New(info.Env(), "RenderingContext.PopClipRect(): Clip rect stack should not be empty!");
+        throw Error::New(info.Env(), "SDLRenderingContext.PopClipRect(): Clip rect stack should not be empty!");
     }
 
     this->clipRectStack.pop_back();
@@ -117,7 +117,7 @@ void RenderingContext::PopClipRect(const CallbackInfo& info) {
     SDL_RenderSetClipRect(this->renderer, this->clipRectStack.empty() ? nullptr : &this->clipRectStack.back());
 }
 
-void RenderingContext::Blit(const CallbackInfo& info) {
+void SDLRenderingContext::Blit(const CallbackInfo& info) {
     auto texture = info[0].As<External<SDL_Texture>>().Data();
     SDL_Rect rect = {
         info[1].As<Number>().Int32Value() + this->wx,
@@ -131,7 +131,7 @@ void RenderingContext::Blit(const CallbackInfo& info) {
     SDL_RenderCopy(this->renderer, texture, nullptr, &rect);
 }
 
-void RenderingContext::Shift(const CallbackInfo& info) {
+void SDLRenderingContext::Shift(const CallbackInfo& info) {
     this->positionStack.push_back(this->wx);
     this->positionStack.push_back(this->wy);
 
@@ -139,9 +139,9 @@ void RenderingContext::Shift(const CallbackInfo& info) {
     this->wy += info[1].As<Number>().Int32Value();
 }
 
-void RenderingContext::Unshift(const CallbackInfo& info) {
+void SDLRenderingContext::Unshift(const CallbackInfo& info) {
     if (this->positionStack.size() < 2) {
-        throw Error::New(info.Env(), "RenderingContext.Unshift(): Position stack should not be empty!");
+        throw Error::New(info.Env(), "SDLRenderingContext.Unshift(): Position stack should not be empty!");
         return;
     }
 
@@ -151,7 +151,7 @@ void RenderingContext::Unshift(const CallbackInfo& info) {
     this->positionStack.pop_back();
 }
 
-void RenderingContext::FillRect(const CallbackInfo& info) {
+void SDLRenderingContext::FillRect(const CallbackInfo& info) {
     SDL_Rect rect = {
         info[0].As<Number>().Int32Value() + this->wx,
         info[1].As<Number>().Int32Value() + this->wy,
@@ -163,7 +163,7 @@ void RenderingContext::FillRect(const CallbackInfo& info) {
     SDL_RenderFillRect(this->renderer, &rect);
 }
 
-void RenderingContext::Border(const CallbackInfo& info) {
+void SDLRenderingContext::Border(const CallbackInfo& info) {
     SDL_Rect rect[4];
     SDL_Rect *ptr;
     auto count = 0;
@@ -216,7 +216,7 @@ void RenderingContext::Border(const CallbackInfo& info) {
     }
 }
 
-void RenderingContext::DrawText(const CallbackInfo& info) {
+void SDLRenderingContext::DrawText(const CallbackInfo& info) {
     auto text = info[0].As<String>().Utf8Value();
     auto x = info[1].As<Number>().Int32Value() + this->wx;
     auto y = info[2].As<Number>().Int32Value() + this->wy;
@@ -257,7 +257,7 @@ void RenderingContext::DrawText(const CallbackInfo& info) {
     }
 }
 
-void RenderingContext::BlitCapInsets(const CallbackInfo& info) {
+void SDLRenderingContext::BlitCapInsets(const CallbackInfo& info) {
     auto texture = info[0].As<External<SDL_Texture>>().Data();
     auto capInsets = ObjectWrap<CapInsets>::Unwrap(info[1].As<Object>());
     auto x = info[2].As<Number>().Int32Value() + this->wx;

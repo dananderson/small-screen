@@ -4,19 +4,19 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifndef RENDERINGCONTEXT_H
-#define RENDERINGCONTEXT_H
+#ifndef SDLRENDERINGCONTEXT_H
+#define SDLRENDERINGCONTEXT_H
 
 #include "napi.h"
 #include <SDL.h>
 #include <vector>
 
-class RenderingContext : public Napi::ObjectWrap<RenderingContext> {
+class SDLRenderingContext : public Napi::ObjectWrap<SDLRenderingContext> {
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
   
-    RenderingContext(const Napi::CallbackInfo& info);
-    virtual ~RenderingContext() {}
+    SDLRenderingContext(const Napi::CallbackInfo& info);
+    virtual ~SDLRenderingContext() {}
     
     void PushStyle(const Napi::CallbackInfo& info);
     void PopStyle(const Napi::CallbackInfo& info);

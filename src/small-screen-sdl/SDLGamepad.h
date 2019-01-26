@@ -4,19 +4,19 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifndef GAMEPAD_H
-#define GAMEPAD_H
+#ifndef SDLGAMEPAD_H
+#define SDLGAMEPAD_H
 
 #include "napi.h"
 #include <SDL.h>
 #include <string>
 
-class Gamepad : public Napi::ObjectWrap<Gamepad> {
+class SDLGamepad : public Napi::ObjectWrap<SDLGamepad> {
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
 
-    Gamepad(const Napi::CallbackInfo& info);
-    ~Gamepad() {}
+    SDLGamepad(const Napi::CallbackInfo& info);
+    ~SDLGamepad() {}
 
     Napi::Value GetId(const Napi::CallbackInfo& info);
     Napi::Value GetGUID(const Napi::CallbackInfo& info);

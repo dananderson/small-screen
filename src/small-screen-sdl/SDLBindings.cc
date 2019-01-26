@@ -12,6 +12,9 @@
 #include "TextureFormat.h"
 #include <vector>
 #include <algorithm>
+#include <map>
+#include <iostream>
+#include "FontSample.h"
 
 using namespace Napi;
 
@@ -154,6 +157,129 @@ Value JS_GetEvents(const CallbackInfo& info) {
                                  SDL_LASTEVENT);
 
     return Number::New(info.Env(), result);
+}
+
+Value JS_CreateFontTexture(const CallbackInfo& info) {
+    auto renderer = info[0].As<External<SDL_Renderer>>().Data();
+    auto sample = info[1].As<External<FontSample>>().Data();
+    auto format = info[2].As<Number>().Uint32Value();
+    auto width = sample->GetTextureWidth();
+    auto height = sample->GetTextureHeight();
+
+    auto texture = SDL_CreateTexture(renderer,
+                                     format,
+                                     SDL_TEXTUREACCESS_STREAMING,
+                                     width,
+                                     height);
+
+    if (texture == nullptr) {
+        throw Error::New(info.Env(), Format() << "Failed to create texture. " << SDL_GetError());
+    }
+
+    void *pixels;
+    int destPitch;
+
+    auto result = SDL_LockTexture(texture, nullptr, &pixels, &destPitch);
+
+    if (result != 0) {
+        SDL_DestroyTexture(texture);
+        throw Error::New(info.Env(), Format() << "Failed to lock texture. " << SDL_GetError());
+    }
+
+
+    auto dest = reinterpret_cast<unsigned char *>(pixels);
+    auto source = sample->GetTexturePixels();
+
+    if (IsBigEndian()) {
+        for (int h = 0; h < height; h++) {
+            auto column = &dest[h*destPitch];
+
+            for (int w = 0; w < width; w++) {
+                auto alpha = *source++;
+
+                *column++ = alpha;
+                *column++ = 255;
+                *column++ = 255;
+                *column++ = 255;
+            }
+        }
+    } else {
+        for (int h = 0; h < height; h++) {
+            auto column = &dest[h*destPitch];
+
+            for (int w = 0; w < width; w++) {
+                auto alpha = *source++;
+
+                *column++ = 255;
+                *column++ = 255;
+                *column++ = 255;
+                *column++ = alpha;
+            }
+        }
+    }
+
+    SDL_UnlockTexture(texture);
+
+    return External<SDL_Texture>::New(info.Env(), texture);
+}
+
+Value JS_CreateTexture(const CallbackInfo& info) {
+    auto renderer = info[0].As<External<SDL_Renderer>>().Data();
+    auto width = info[1].As<Number>().Int32Value();
+    auto height = info[2].As<Number>().Int32Value();
+    auto format = info[3].As<Number>().Uint32Value();
+    auto source = info[4].As<Buffer<Uint8>>().Data();
+
+    auto texture = SDL_CreateTexture(renderer,
+                                     format,
+                                     SDL_TEXTUREACCESS_STREAMING,
+                                     width,
+                                     height);
+
+    if (texture == nullptr) {
+        throw Error::New(info.Env(), Format() << "Failed to create texture. " << SDL_GetError());
+    }
+
+    void *pixels;
+    int pitch;
+
+    auto result = SDL_LockTexture(texture, nullptr, &pixels, &pitch);
+
+    if (result != 0) {
+        SDL_DestroyTexture(texture);
+        throw Error::New(info.Env(), Format() << "Failed to lock texture. " << SDL_GetError());
+    }
+
+    int bpp = SDL_BYTESPERPIXEL(format);
+
+    if (pitch == width * bpp) {
+        memcpy(pixels, source, bpp * width * height);
+    } else {
+        auto dest = reinterpret_cast<unsigned char *>(pixels);
+
+        for (int h = 0; h < height; h++) {
+            auto column = &dest[h*pitch];
+
+            for (int w = 0; w < width; w++) {
+                *column++ = *source++;
+                *column++ = *source++;
+                *column++ = *source++;
+                *column++ = *source++;
+            }
+        }
+    }
+
+    SDL_UnlockTexture(texture);
+
+    return External<SDL_Texture>::New(info.Env(), texture);
+}
+
+void JS_DestroyTexture(const CallbackInfo& info) {
+    auto texture = info[0].IsExternal() ? info[0].As<External<SDL_Texture>>().Data() : nullptr;
+
+    if (texture) {
+        SDL_DestroyTexture(texture);
+    }
 }
 
 
@@ -307,189 +433,6 @@ Value JS_SDL_GetPixelFormatName(const CallbackInfo& info) {
     return String::New(info.Env(), name);
 }
 
-// extern DECLSPEC int SDLCALL SDL_NumJoysticks(void);
-Value JS_SDL_NumJoysticks(const CallbackInfo& info) {
-    auto result = SDL_NumJoysticks();
-
-    return Number::New(info.Env(), result);
-}
-
-// extern DECLSPEC SDL_Joystick *SDLCALL SDL_JoystickOpen(int device_index);
-Value JS_SDL_JoystickOpen(const CallbackInfo& info) {
-    auto result = SDL_JoystickOpen(info[0].As<Number>().Int32Value());
-
-    return External<SDL_Joystick>::New(info.Env(), result);
-}
-
-// extern DECLSPEC const char *SDLCALL SDL_JoystickName(SDL_Joystick * joystick);
-Value JS_SDL_JoystickName(const CallbackInfo& info) {
-    auto result = SDL_JoystickName(info[0].As<External<SDL_Joystick>>().Data());
-
-    return String::New(info.Env(), result);
-}
-
-// extern DECLSPEC const char *SDLCALL SDL_JoystickNameForIndex(int device_index);
-Value JS_SDL_JoystickNameForIndex(const CallbackInfo& info) {
-    auto result = SDL_JoystickNameForIndex(info[0].As<Number>().Int32Value());
-
-    return String::New(info.Env(), result);
-}
-
-// extern DECLSPEC void SDLCALL SDL_JoystickClose(SDL_Joystick * joystick);
-void JS_SDL_JoystickClose(const CallbackInfo& info) {
-    SDL_JoystickClose(info[0].As<External<SDL_Joystick>>().Data());
-}
-
-// extern DECLSPEC SDL_JoystickID SDLCALL SDL_JoystickInstanceID(SDL_Joystick * joystick);
-Value JS_SDL_JoystickInstanceID(const CallbackInfo& info) {
-    auto result = SDL_JoystickInstanceID(info[0].As<External<SDL_Joystick>>().Data());
-
-    return Number::New(info.Env(), result);
-}
-
-// extern DECLSPEC SDL_JoystickGUID SDLCALL SDL_JoystickGetGUID(SDL_Joystick * joystick);
-// extern DECLSPEC void SDLCALL SDL_JoystickGetGUIDString(SDL_JoystickGUID guid, char *pszGUID, int cbGUID);
-Value JS_SDL_JoystickGetGUID(const CallbackInfo& info) {
-    auto guid = SDL_JoystickGetGUID(info[0].As<External<SDL_Joystick>>().Data());
-    char guidStr[33];
-
-    SDL_JoystickGetGUIDString(guid, guidStr, 33);
-
-    return String::New(info.Env(), guidStr);
-}
-
-// extern DECLSPEC SDL_JoystickGUID SDLCALL SDL_JoystickGetDeviceGUID(int device_index);
-Value JS_SDL_JoystickGetDeviceGUID(const CallbackInfo& info) {
-    auto guid = SDL_JoystickGetDeviceGUID(info[0].As<Number>().Int32Value());
-    char guidStr[33];
-
-    SDL_JoystickGetGUIDString(guid, guidStr, 33);
-
-    return String::New(info.Env(), guidStr);
-}
-
-//extern DECLSPEC int SDLCALL SDL_JoystickNumAxes(SDL_Joystick * joystick);
-Value JS_SDL_JoystickNumAxes(const CallbackInfo& info) {
-    auto result = SDL_JoystickNumAxes(info[0].As<External<SDL_Joystick>>().Data());
-
-    return Number::New(info.Env(), result);
-}
-
-//extern DECLSPEC int SDLCALL SDL_JoystickNumBalls(SDL_Joystick * joystick);
-Value JS_SDL_JoystickNumBalls(const CallbackInfo& info) {
-    auto result = SDL_JoystickNumBalls(info[0].As<External<SDL_Joystick>>().Data());
-
-    return Number::New(info.Env(), result);
-}
-
-//extern DECLSPEC int SDLCALL SDL_JoystickNumHats(SDL_Joystick * joystick);
-Value JS_SDL_JoystickNumHats(const CallbackInfo& info) {
-    auto result = SDL_JoystickNumHats(info[0].As<External<SDL_Joystick>>().Data());
-
-    return Number::New(info.Env(), result);
-}
-
-//extern DECLSPEC int SDLCALL SDL_JoystickNumButtons(SDL_Joystick * joystick);
-Value JS_SDL_JoystickNumButtons(const CallbackInfo& info) {
-    auto result = SDL_JoystickNumButtons(info[0].As<External<SDL_Joystick>>().Data());
-
-    return Number::New(info.Env(), result);
-}
-
-//#define SDL_LoadWAV(file, spec, audio_buf, audio_len) \
-//    SDL_LoadWAV_RW(SDL_RWFromFile(file, "rb"),1, spec,audio_buf,audio_len)
-Value JS_SDL_LoadWAV(const CallbackInfo& info) {
-    auto file = info[0].As<String>().Utf8Value();
-    SDL_AudioSpec spec;
-    Uint8 *buffer;
-    Uint32 bufferLen;
-
-    SDL_memset(&spec, 0, sizeof(spec));
-
-    auto result = SDL_LoadWAV_RW(SDL_RWFromFile(file.c_str(), "rb"), 1, &spec, &buffer, &bufferLen);
-
-    if (result == nullptr) {
-        return info.Env().Undefined();
-    }
-
-    return Buffer<Uint8>::New(info.Env(), buffer, bufferLen);
-}
-
-// extern DECLSPEC void SDLCALL SDL_FreeWAV(Uint8 * audio_buf);
-void JS_SDL_FreeWAV(const CallbackInfo& info) {
-    SDL_FreeWAV(info[0].As<Buffer<Uint8>>().Data());
-}
-
-// extern DECLSPEC SDL_bool SDLCALL SDL_IsGameController(int joystick_index);
-Value JS_SDL_IsGameController(const CallbackInfo& info) {
-    auto index = info[0].As<Number>().Int32Value();
-
-    return Boolean::New(info.Env(), SDL_IsGameController(index) == SDL_TRUE);
-}
-
-// #define SDL_GameControllerAddMappingsFromFile(file)   SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(file, "rb"), 1)
-void JS_SDL_GameControllerAddMappingsFromFile(const CallbackInfo& info) {
-    SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(info[0].As<String>().Utf8Value().c_str(), "rb"), 1);
-}
-
-// extern DECLSPEC Uint16 SDLCALL SDL_JoystickGetDeviceVendor(int device_index);
-Value JS_SDL_JoystickGetDeviceVendor(const CallbackInfo& info) {
-    auto index = info[0].As<Number>().Int32Value();
-    auto vendor = SDL_JoystickGetDeviceVendor(index);
-
-    return Number::New(info.Env(), vendor);
-}
-
-// extern DECLSPEC Uint16 SDLCALL SDL_JoystickGetDeviceProduct(int device_index);
-Value JS_SDL_JoystickGetDeviceProduct(const CallbackInfo& info) {
-    auto index = info[0].As<Number>().Int32Value();
-    auto product = SDL_JoystickGetDeviceProduct(index);
-
-    return Number::New(info.Env(), product);
-}
-
-// extern DECLSPEC Uint16 SDLCALL SDL_JoystickGetDeviceProductVersion(int device_index);
-Value JS_SDL_JoystickGetDeviceProductVersion(const CallbackInfo& info) {
-    auto index = info[0].As<Number>().Int32Value();
-    auto productVersion = SDL_JoystickGetDeviceProductVersion(index);
-
-    return Number::New(info.Env(), productVersion); 
-}
-
-// extern DECLSPEC SDL_JoystickID SDLCALL SDL_JoystickGetDeviceInstanceID(int device_index);
-Value JS_SDL_JoystickGetDeviceInstanceID(const CallbackInfo& info) {
-    auto index = info[0].As<Number>().Int32Value();
-    auto instanceId = SDL_JoystickGetDeviceInstanceID(index);
-
-    return Number::New(info.Env(), instanceId);
-}
-
-// extern DECLSPEC int SDLCALL SDL_GameControllerAddMapping(const char* mappingString);
-Value JS_SDL_GameControllerAddMapping(const CallbackInfo& info) {
-    auto mappingString = info[0].IsString() ? info[0].ToString().Utf8Value() : std::string();
-    auto result = SDL_GameControllerAddMapping(mappingString.c_str());
-
-    return Boolean::New(info.Env(), result == 0);
-}
-
-Value JS_SDL_GameControllerMappingForGUID(const CallbackInfo& info) {
-    auto guid = SDL_JoystickGetGUID(info[0].As<External<SDL_Joystick>>().Data());
-    auto mapping = SDL_GameControllerMappingForGUID(guid);
-
-    if (mapping) {
-        return String::New(info.Env(), mapping);
-    } else {
-        return info.Env().Undefined();
-    }
-}
-
-// const char* SDL_GetPlatform(void)
-Value JS_SDL_GetPlatform(const CallbackInfo& info) {
-    auto platform = SDL_GetPlatform();
-
-    return String::New(info.Env(), platform);
-}
-
 std::string GetSDLVersion() {
     SDL_version linked;
     SDL_GetVersion(&linked);
@@ -509,6 +452,9 @@ Object SDLBindingsInit(Env env, Object exports) {
     exports["destroyRenderer"] = Function::New(env, JS_DestroyRenderer, "destroyRenderer");
     exports["getCreateTextureFormat"] = Function::New(env, JS_GetCreateTextureFormat, "getCreateTextureFormat");
     exports["getEvents"] = Function::New(env, JS_GetEvents, "getEvents");
+    exports["createTexture"] = Function::New(env, JS_CreateTexture, "createTexture");
+    exports["createFontTexture"] = Function::New(env, JS_CreateFontTexture, "createFontTexture");
+    exports["destroyTexture"] = Function::New(env, JS_DestroyTexture, "destroyTexture");
 
     exports["SDL_VERSION"] = String::New(env, GetSDLVersion());
     exports["SDL_EVENT_SIZE"] = Number::New(env, sizeof(SDL_Event));
@@ -529,34 +475,6 @@ Object SDLBindingsInit(Env env, Object exports) {
     exports["SDL_GetDesktopDisplayMode"] = Function::New(env, JS_SDL_GetDesktopDisplayMode, "SDL_GetDesktopDisplayMode");
     exports["SDL_GetCurrentDisplayMode"] = Function::New(env, JS_SDL_GetCurrentDisplayMode, "SDL_GetCurrentDisplayMode");
     exports["SDL_GetPixelFormatName"] = Function::New(env, JS_SDL_GetPixelFormatName, "SDL_GetPixelFormatName");
-
-    exports["SDL_JoystickOpen"] = Function::New(env, JS_SDL_JoystickOpen, "SDL_JoystickOpen");
-    exports["SDL_JoystickName"] = Function::New(env, JS_SDL_JoystickName, "SDL_JoystickName");
-    exports["SDL_JoystickNameForIndex"] = Function::New(env, JS_SDL_JoystickNameForIndex, "SDL_JoystickNameForIndex");
-    exports["SDL_JoystickClose"] = Function::New(env, JS_SDL_JoystickClose, "SDL_JoystickClose");
-    exports["SDL_JoystickInstanceID"] = Function::New(env, JS_SDL_JoystickInstanceID, "SDL_JoystickInstanceID");
-    exports["SDL_JoystickGetGUID"] = Function::New(env, JS_SDL_JoystickGetGUID, "SDL_JoystickGetGUID");
-    exports["SDL_JoystickGetDeviceGUID"] = Function::New(env, JS_SDL_JoystickGetDeviceGUID, "SDL_JoystickGetDeviceGUID");
-    exports["SDL_JoystickNumAxes"] = Function::New(env, JS_SDL_JoystickNumAxes, "SDL_JoystickNumAxes");
-    exports["SDL_JoystickNumBalls"] = Function::New(env, JS_SDL_JoystickNumBalls, "SDL_JoystickNumBalls");
-    exports["SDL_JoystickNumHats"] = Function::New(env, JS_SDL_JoystickNumHats, "SDL_JoystickNumHats");
-    exports["SDL_JoystickNumButtons"] = Function::New(env, JS_SDL_JoystickNumButtons, "SDL_JoystickNumButtons");
-    exports["SDL_NumJoysticks"] = Function::New(env, JS_SDL_NumJoysticks, "SDL_NumJoysticks");
-
-    exports["SDL_IsGameController"] = Function::New(env, JS_SDL_IsGameController, "SDL_IsGameController");
-    exports["SDL_GameControllerAddMappingsFromFile"] = Function::New(env, JS_SDL_GameControllerAddMappingsFromFile, "SDL_GameControllerAddMappingsFromFile");
-    exports["SDL_JoystickGetDeviceVendor"] = Function::New(env, JS_SDL_JoystickGetDeviceVendor, "SDL_JoystickGetDeviceVendor");
-    exports["SDL_JoystickGetDeviceProduct"] = Function::New(env, JS_SDL_JoystickGetDeviceProduct, "SDL_JoystickGetDeviceProduct");
-    exports["SDL_JoystickGetDeviceProductVersion"] = Function::New(env, JS_SDL_JoystickGetDeviceProductVersion, "SDL_JoystickGetDeviceProductVersion");
-    exports["SDL_JoystickGetDeviceInstanceID"] = Function::New(env, JS_SDL_JoystickGetDeviceInstanceID, "SDL_JoystickGetDeviceInstanceID");
-    exports["SDL_GameControllerAddMapping"] = Function::New(env, JS_SDL_GameControllerAddMapping, "SDL_GameControllerAddMapping");
-    exports["SDL_GameControllerMappingForGUID"] = Function::New(env, JS_SDL_GameControllerMappingForGUID, "SDL_GameControllerMappingForGUID");
-    exports["SDL_GetPlatform"] = Function::New(env, JS_SDL_GetPlatform, "SDL_GetPlatform");
-
-    exports["SDL_LoadWAV"] = Function::New(env, JS_SDL_LoadWAV, "SDL_LoadWAV");
-    exports["SDL_FreeWAV"] = Function::New(env, JS_SDL_FreeWAV, "SDL_FreeWAV");
-
-
 
     exports["SDL_INIT_TIMER"] = Number::New(env, SDL_INIT_TIMER);
     exports["SDL_INIT_AUDIO"] = Number::New(env, SDL_INIT_AUDIO);

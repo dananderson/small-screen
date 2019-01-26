@@ -89,11 +89,10 @@
       ],
       "sources": [
         "src/common/Util.cc",
-        "src/small-screen-sdl/RenderingContext.cc",
+        "src/small-screen-sdl/SDLRenderingContext.cc",
         "src/small-screen-sdl/SDLAudioContext.cc",
-        "src/small-screen-sdl/Gamepad.cc",
+        "src/small-screen-sdl/SDLGamepad.cc",
         "src/small-screen-sdl/SDLBindings.cc",
-        "src/small-screen-sdl/Graphics.cc",
         "src/small-screen-sdl/Init.cc"
       ],
       "libraries": [

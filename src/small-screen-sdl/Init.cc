@@ -5,9 +5,8 @@
  */
 
 #include "SDLBindings.h"
-#include "Graphics.h"
-#include "RenderingContext.h"
-#include "Gamepad.h"
+#include "SDLRenderingContext.h"
+#include "SDLGamepad.h"
 #include "SDLAudioContext.h"
 #include "napi.h"
 
@@ -15,9 +14,8 @@ using namespace Napi;
 
 Object Init(Env env, Object exports) {
     SDLBindingsInit(env, exports);
-    GraphicsInit(env, exports);
-    RenderingContext::Init(env, exports);
-    Gamepad::Init(env, exports);
+    SDLRenderingContext::Init(env, exports);
+    SDLGamepad::Init(env, exports);
     SDLAudioContext::Init(env, exports);
 
     return exports;
