@@ -84,7 +84,7 @@ Value SDLAudioContext::CreateAudioSample(const CallbackInfo& info) {
 
     SDL_memset(&spec, 0, sizeof(spec));
 
-    auto chunk = SDL_LoadWAV(file.c_str(), 1, &spec, &buffer, &bufferLen);
+    auto chunk = SDL_LoadWAV(file.c_str(), &spec, &buffer, &bufferLen);
 
     if (!chunk) {
         throw Error::New(env, "Failed to load audio sample from file.");
