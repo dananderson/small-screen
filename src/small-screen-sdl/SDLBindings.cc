@@ -433,6 +433,15 @@ Value JS_SDL_GetPixelFormatName(const CallbackInfo& info) {
     return String::New(info.Env(), name);
 }
 
+// extern DECLSPEC SDL_JoystickID SDLCALL SDL_JoystickGetDeviceInstanceID(int device_index);
+Value JS_SDL_JoystickGetDeviceInstanceID(const CallbackInfo& info) {
+    auto index = info[0].As<Number>().Int32Value();
+    auto instanceId = SDL_JoystickGetDeviceInstanceID(index);
+
+    return Number::New(info.Env(), instanceId);
+}
+
+
 std::string GetSDLVersion() {
     SDL_version linked;
     SDL_GetVersion(&linked);
@@ -475,6 +484,7 @@ Object SDLBindingsInit(Env env, Object exports) {
     exports["SDL_GetDesktopDisplayMode"] = Function::New(env, JS_SDL_GetDesktopDisplayMode, "SDL_GetDesktopDisplayMode");
     exports["SDL_GetCurrentDisplayMode"] = Function::New(env, JS_SDL_GetCurrentDisplayMode, "SDL_GetCurrentDisplayMode");
     exports["SDL_GetPixelFormatName"] = Function::New(env, JS_SDL_GetPixelFormatName, "SDL_GetPixelFormatName");
+    exports["SDL_JoystickGetDeviceInstanceID"] = Function::New(env, JS_SDL_JoystickGetDeviceInstanceID, "SDL_JoystickGetDeviceInstanceID");
 
     exports["SDL_INIT_TIMER"] = Number::New(env, SDL_INIT_TIMER);
     exports["SDL_INIT_AUDIO"] = Number::New(env, SDL_INIT_AUDIO);

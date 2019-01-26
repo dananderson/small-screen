@@ -66,7 +66,7 @@ void AsyncTaskWorker () {
 }
 
 int AsyncTaskQueue::GetThreadPoolSize() {
-    return (int)sConsumers.size();
+    return static_cast<int>(sConsumers.size());
 }
 
 void AsyncTaskQueue::SetThreadPoolSize(size_t size) {

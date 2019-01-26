@@ -45,17 +45,20 @@ SDLGamepad::SDLGamepad(const CallbackInfo& info)
 
     this->id = SDL_JoystickInstanceID(joystick);
 
-    auto guid = SDL_JoystickGetGUID(this->joystick);
+    auto joystickGUID = SDL_JoystickGetGUID(this->joystick);
     char guidStr[33];
 
-    SDL_JoystickGetGUIDString(guid, guidStr, 33);
+    SDL_JoystickGetGUIDString(joystickGUID, guidStr, 33);
 
     this->guid = guidStr;
     this->name = SDL_JoystickName(joystick);
     this->axisCount = SDL_JoystickNumAxes(joystick);
     this->buttonCount = SDL_JoystickNumButtons(joystick);
     this->hatCount = SDL_JoystickNumHats(joystick);
-    this->mapping = SDL_GameControllerMappingForGUID(guid);
+
+    auto gamecontrollerMapping = SDL_GameControllerMappingForGUID(joystickGUID);
+
+    this->mapping = gamecontrollerMapping ? gamecontrollerMapping : "";
 }
 
 Value SDLGamepad::Count(const CallbackInfo& info) {
