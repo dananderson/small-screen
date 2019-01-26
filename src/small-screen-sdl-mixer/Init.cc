@@ -5,10 +5,13 @@
  */
 
 #include "napi.h"
+#include "SDLMixerAudioContext.h"
 
 using namespace Napi;
 
 Object Init(Env env, Object exports) {
+    SDLMixerAudioContext::Init(env, exports);
+    
     return exports;
 }
 

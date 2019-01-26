@@ -307,37 +307,6 @@ Value JS_SDL_GetPixelFormatName(const CallbackInfo& info) {
     return String::New(info.Env(), name);
 }
 
-// extern DECLSPEC int SDLCALL SDL_OpenAudio(SDL_AudioSpec * desired, SDL_AudioSpec * obtained);
-void JS_SDL_OpenAudio(const CallbackInfo& info) {
-    SDL_AudioSpec desired;
-
-    SDL_memset(&desired, 0, sizeof(desired));
-
-    SDL_OpenAudio(&desired, nullptr);
-}
-
-// extern DECLSPEC void SDLCALL SDL_PauseAudio(int pause_on);
-void JS_SDL_PauseAudio(const CallbackInfo& info) {
-    SDL_PauseAudio(info[0].As<Number>().Int32Value());
-}
-
-// extern DECLSPEC int SDLCALL SDL_QueueAudio(SDL_AudioDeviceID dev, const void *data, Uint32 len);
-void JS_SDL_QueueAudio(const CallbackInfo& info) {
-    SDL_QueueAudio(info[0].As<Number>().Uint32Value(),
-                   info[1].As<Buffer<Uint8>>().Data(),
-                   info[2].As<Number>().Uint32Value());
-}
-
-// extern DECLSPEC void SDLCALL SDL_CloseAudio(void);
-void JS_SDL_CloseAudio(const CallbackInfo& info) {
-    SDL_CloseAudio();
-}
-
-// extern DECLSPEC void SDLCALL SDL_ClearQueuedAudio(SDL_AudioDeviceID dev);
-void JS_SDL_ClearQueuedAudio(const CallbackInfo& info) {
-    SDL_ClearQueuedAudio(info[0].As<Number>().Uint32Value());
-}
-
 // extern DECLSPEC int SDLCALL SDL_NumJoysticks(void);
 Value JS_SDL_NumJoysticks(const CallbackInfo& info) {
     auto result = SDL_NumJoysticks();
@@ -560,12 +529,6 @@ Object SDLBindingsInit(Env env, Object exports) {
     exports["SDL_GetDesktopDisplayMode"] = Function::New(env, JS_SDL_GetDesktopDisplayMode, "SDL_GetDesktopDisplayMode");
     exports["SDL_GetCurrentDisplayMode"] = Function::New(env, JS_SDL_GetCurrentDisplayMode, "SDL_GetCurrentDisplayMode");
     exports["SDL_GetPixelFormatName"] = Function::New(env, JS_SDL_GetPixelFormatName, "SDL_GetPixelFormatName");
-
-    exports["SDL_OpenAudio"] = Function::New(env, JS_SDL_OpenAudio, "SDL_OpenAudio");
-    exports["SDL_PauseAudio"] = Function::New(env, JS_SDL_PauseAudio, "SDL_PauseAudio");
-    exports["SDL_ClearQueuedAudio"] = Function::New(env, JS_SDL_ClearQueuedAudio, "SDL_ClearQueuedAudio");
-    exports["SDL_QueueAudio"] = Function::New(env, JS_SDL_QueueAudio, "SDL_QueueAudio");
-    exports["SDL_CloseAudio"] = Function::New(env, JS_SDL_CloseAudio, "SDL_CloseAudio");
 
     exports["SDL_JoystickOpen"] = Function::New(env, JS_SDL_JoystickOpen, "SDL_JoystickOpen");
     exports["SDL_JoystickName"] = Function::New(env, JS_SDL_JoystickName, "SDL_JoystickName");

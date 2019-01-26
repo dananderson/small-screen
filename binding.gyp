@@ -2,8 +2,8 @@
 
   'variables': {
     'with_sdl_mixer%': 'false',
-    'sdl_library_path%': '/usr/lib',
-    'sdl_include_path%': '/usr/include/SDL2',
+    'sdl_library_path%': '/usr/local/lib',
+    'sdl_include_path%': '/usr/local/include/SDL2',
     'sdl_mixer_include_path%': '<(sdl_include_path)',
     'sdl_mixer_library_path%': '<(sdl_library_path)',
   },
@@ -90,6 +90,7 @@
       "sources": [
         "src/common/Util.cc",
         "src/small-screen-sdl/RenderingContext.cc",
+        "src/small-screen-sdl/SDLAudioContext.cc",
         "src/small-screen-sdl/Gamepad.cc",
         "src/small-screen-sdl/SDLBindings.cc",
         "src/small-screen-sdl/Graphics.cc",
@@ -137,6 +138,7 @@
       ]
       ],
       "sources": [
+        "src/small-screen-sdl-mixer/SDLMixerAudioContext.cc",
         "src/small-screen-sdl-mixer/Init.cc"
       ],
       "libraries": [

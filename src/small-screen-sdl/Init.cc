@@ -8,6 +8,7 @@
 #include "Graphics.h"
 #include "RenderingContext.h"
 #include "Gamepad.h"
+#include "SDLAudioContext.h"
 #include "napi.h"
 
 using namespace Napi;
@@ -17,7 +18,8 @@ Object Init(Env env, Object exports) {
     GraphicsInit(env, exports);
     RenderingContext::Init(env, exports);
     Gamepad::Init(env, exports);
-    
+    SDLAudioContext::Init(env, exports);
+
     return exports;
 }
 
