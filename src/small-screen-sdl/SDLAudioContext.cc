@@ -76,7 +76,18 @@ void SDLAudioContext::Detach(const CallbackInfo& info) {
 
 Value SDLAudioContext::CreateAudioSample(const CallbackInfo& info) {
     auto env = info.Env();
-    auto file = info[0].As<String>().Utf8Value();
+    auto arg = info[0];
+    SDL_RWops *src;
+
+    if (arg.IsString()) {
+        src = SDL_RWFromFile(arg.ToString().Utf8Value().c_str(), "rb");
+    } else if (arg.IsBuffer()) {
+        auto buffer = arg.As<Buffer<unsigned char>>();
+
+        src = SDL_RWFromMem(static_cast<void *>(buffer.Data()), static_cast<int>(buffer.Length()));
+    } else {
+        throw Error::New(env, "createAudioSample: Unexpected argument type.");
+    }
 
     SDL_AudioSpec spec;
     Uint8 *buffer;
@@ -84,10 +95,10 @@ Value SDLAudioContext::CreateAudioSample(const CallbackInfo& info) {
 
     SDL_memset(&spec, 0, sizeof(spec));
 
-    auto chunk = SDL_LoadWAV(file.c_str(), &spec, &buffer, &bufferLen);
+    auto chunk = SDL_LoadWAV_RW(src, 1, &spec, &buffer, &bufferLen);
 
     if (!chunk) {
-        throw Error::New(env, "Failed to load audio sample from file.");
+        throw Error::New(env, "createAudioSample: Failed to load audio sample from file.");
     }
 
     return Buffer<Uint8>::New(env, buffer, bufferLen);

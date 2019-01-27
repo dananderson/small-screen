@@ -93,12 +93,23 @@ void SDLMixerAudioContext::Detach(const CallbackInfo& info) {
 
 Value SDLMixerAudioContext::CreateAudioSample(const CallbackInfo& info) {
     auto env = info.Env();
-    auto file = info[0].As<String>().Utf8Value();
+    auto arg = info[0];
+    SDL_RWops *src;
 
-    auto chunk = Mix_LoadWAV(file.c_str());
+    if (arg.IsString()) {
+        src = SDL_RWFromFile(arg.ToString().Utf8Value().c_str(), "rb");
+    } else if (arg.IsBuffer()) {
+        auto buffer = arg.As<Buffer<unsigned char>>();
+
+        src = SDL_RWFromMem(static_cast<void *>(buffer.Data()), static_cast<int>(buffer.Length()));
+    } else {
+        throw Error::New(env, "createAudioSample: Unexpected argument type.");
+    }
+
+    auto chunk = Mix_LoadWAV_RW(src, 1);
 
     if (!chunk) {
-        throw Error::New(env, "Failed to load audio sample from file.");
+        throw Error::New(env, "createAudioSample: Failed to load audio sample from file.");
     }
 
     return External<Mix_Chunk>::New(env, chunk);
