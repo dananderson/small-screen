@@ -11,8 +11,8 @@ import { View } from '../../../../lib/Core/Views/View'
 describe('ImageView Test', () => {
   const app = {
     resource: {
-      releaseResourceBySource: () => {},
-      acquireResourceBySource: () => {}
+      releaseBySource: () => {},
+      acquireBySource: () => {}
     },
     layout: {
       off: () => {}

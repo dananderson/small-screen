@@ -10,6 +10,7 @@ import sinon from 'sinon'
 import { Resource } from '../../../../lib/Core/Resource/Resource'
 import { AudioResource } from '../../../../lib/Core/Resource/AudioResource'
 import { SourceType } from '../../../../lib/Core/Util'
+import { createAudio } from '.'
 
 chai.use(chaiAsPromised)
 
@@ -80,12 +81,3 @@ describe('AudioResource', () => {
     audio = createAudio()
   })
 })
-
-class Audio {
-  createAudioSample () {}
-  destroyAudioSample () {}
-}
-
-function createAudio () {
-  return sinon.createStubInstance(Audio)
-}

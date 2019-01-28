@@ -10,6 +10,7 @@ import sinon from 'sinon'
 import { Resource } from '../../../../lib/Core/Resource/Resource'
 import { ImageResource } from '../../../../lib/Core/Resource/ImageResource'
 import { SourceType } from '../../../../lib/Core/Util'
+import { createGraphics } from '.'
 
 chai.use(chaiAsPromised)
 
@@ -79,17 +80,3 @@ describe('ImageResource', () => {
     graphics = createGraphics()
   })
 })
-
-class Graphics {
-  createTexture () {}
-  destroyTexture () {}
-}
-
-function createGraphics () {
-  const graphics = sinon.createStubInstance(Graphics)
-
-  graphics._renderer = {}
-  graphics.textureFormat = 0 // TextureFormat.RGBA
-
-  return graphics
-}
