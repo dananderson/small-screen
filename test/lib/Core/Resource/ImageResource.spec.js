@@ -9,6 +9,7 @@ import chaiAsPromised from 'chai-as-promised'
 import sinon from 'sinon'
 import { Resource } from '../../../../lib/Core/Resource/Resource'
 import { ImageResource } from '../../../../lib/Core/Resource/ImageResource'
+import { SourceType } from '../../../../lib/Core/Util'
 
 chai.use(chaiAsPromised)
 
@@ -17,7 +18,7 @@ describe('ImageResource', () => {
 
   describe('_load()', () => {
     it('should put the resource in the LOADED state with a valid image file', () => {
-      const image = new ImageResource({ uri: 'test/resources/one.png' })
+      const image = new ImageResource({ uri: 'test/resources/one.png', type: SourceType.FILE })
 
       assert.isFulfilled(image._load({ graphics })
         .then(() => {
@@ -30,50 +31,50 @@ describe('ImageResource', () => {
           assert.notExists(image.texture)
         }))
     })
-    it('should put the resource in the FAILED state with file not found', () => {
-      const image = new ImageResource({ uri: 'file-does-not-exist' })
+    it('should put the resource in the ERROR state with file not found', () => {
+      const image = new ImageResource({ uri: 'file-does-not-exist', type: SourceType.FILE })
 
-      assert.isRejected(image._load({ graphics }))
+      assert.isRejected(image._load({ graphics })
+        .finally(() => {
+          assert.equal(image._state, Resource.LOADED)
+        }))
     })
   })
-  // describe('_attach()', (done) => {
-  //   it('should put resource in the ATTACHED state with texture set', () => {
-  //     const image = new ImageResource({ uri: 'test/resources/one.png' })
-  //
-  //     graphics.createTexture.returns('texture')
-  //
-  //     image._load({ graphics })
-  //       .then(() => {
-  //         image._attach({ graphics }).then(() => {
-  //           assert.equal(image._state, Resource.ATTACHED)
-  //           assert.exists(image._image)
-  //           assert.equal(image.texture, 'texture')
-  //           sinon.assert.calledOnce(graphics.createTexture)
-  //           done()
-  //         })
-  //       })
-  //   })
-  // })
-  // describe('_detach()', (done) => {
-  //   it('should put resource in the DETACHED state with texture cleared', () => {
-  //     const image = new ImageResource('test/resources/one.png')
-  //
-  //     graphics.createTexture.returns('texture')
-  //     graphics.destroyTexture.withArgs('texture')
-  //
-  //     image._load({ graphics })
-  //       .then(() => {
-  //         image._attach({ graphics })
-  //         assert.equal(image._state, Resource.ATTACHED)
-  //         image._detach({ graphics })
-  //         assert.equal(image._state, Resource.INIT)
-  //         assert.notExists(image._image)
-  //         assert.notExists(image.texture)
-  //         sinon.assert.calledOnce(graphics.destroyTexture)
-  //         done()
-  //       })
-  //   })
-  // })
+  describe('_attach()', () => {
+    it('should put resource in the ATTACHED state with texture set', () => {
+      const image = new ImageResource({ uri: 'test/resources/one.png', type: SourceType.FILE })
+
+      graphics.createTexture.returns('texture')
+
+      assert.isFulfilled(image._load({ graphics })
+        .then(() => {
+          image._attach({ graphics })
+          assert.equal(image._state, Resource.ATTACHED)
+          assert.notExists(image._image)
+          assert.equal(image.texture, 'texture')
+          sinon.assert.calledOnce(graphics.createTexture)
+        }))
+    })
+  })
+  describe('_detach()', () => {
+    it('should put resource in the INIT state with texture cleared', () => {
+      const image = new ImageResource({ uri: 'test/resources/one.png', type: SourceType.FILE })
+
+      graphics.createTexture.returns('texture')
+      graphics.destroyTexture.withArgs('texture')
+
+      assert.isFulfilled(image._load({ graphics })
+        .then(() => {
+          image._attach({ graphics })
+          assert.equal(image._state, Resource.ATTACHED)
+          image._detach({ graphics })
+          assert.equal(image._state, Resource.INIT)
+          assert.notExists(image._image)
+          assert.notExists(image.texture)
+          sinon.assert.calledOnce(graphics.destroyTexture)
+        }))
+    })
+  })
   beforeEach(() => {
     graphics = createGraphics()
   })
