@@ -24,23 +24,14 @@ public:
     Napi::Value GetAxisCount(const Napi::CallbackInfo& info);
     Napi::Value GetButtonCount(const Napi::CallbackInfo& info);
     Napi::Value GetHatCount(const Napi::CallbackInfo& info);
-    Napi::Value GetMapping(const Napi::CallbackInfo& info);
+    Napi::Value GetGameControllerMapping(const Napi::CallbackInfo& info);
     void Close(const Napi::CallbackInfo& info);
-
-    static Napi::Value Count(const Napi::CallbackInfo& info);
 
 private:
     static Napi::FunctionReference constructor;
-
     SDL_Joystick *joystick;
-    int id;
-    std::string guid;
-    std::string name;
-    int axisCount;
-    int buttonCount;
-    int hatCount;
-    std::string mapping;
-    
+
+    SDL_Joystick *GetJoystickOrThrow(Napi::Env env);
 };
 
 #endif

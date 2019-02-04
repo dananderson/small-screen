@@ -6,6 +6,7 @@
 
 #include "SDLGamepad.h"
 #include "Format.h"
+#include <iostream>
 
 using namespace Napi;
 
@@ -13,16 +14,14 @@ FunctionReference SDLGamepad::constructor;
 
 Object SDLGamepad::Init(Napi::Env env, Object exports) {
   Function func = DefineClass(env, "SDLGamepad", {
-    InstanceAccessor("id", &SDLGamepad::GetId, nullptr),
-    InstanceAccessor("guid", &SDLGamepad::GetGUID, nullptr),
-    InstanceAccessor("name", &SDLGamepad::GetName, nullptr),
-    InstanceAccessor("axisCount", &SDLGamepad::GetAxisCount, nullptr),
-    InstanceAccessor("buttonCount", &SDLGamepad::GetButtonCount, nullptr),
-    InstanceAccessor("hatCount", &SDLGamepad::GetHatCount, nullptr),
-    InstanceAccessor("mapping", &SDLGamepad::GetMapping, nullptr),
-    InstanceMethod("close", &SDLGamepad::Close),
-    StaticMethod("count", &SDLGamepad::Count),
-
+    InstanceMethod("getId", &SDLGamepad::GetId),
+    InstanceMethod("getGUID", &SDLGamepad::GetGUID),
+    InstanceMethod("getName", &SDLGamepad::GetName),
+    InstanceMethod("getAxisCount", &SDLGamepad::GetAxisCount),
+    InstanceMethod("getButtonCount", &SDLGamepad::GetButtonCount),
+    InstanceMethod("getHatCount", &SDLGamepad::GetHatCount),
+    InstanceMethod("getGameControllerMapping", &SDLGamepad::GetGameControllerMapping),
+    InstanceMethod("close", &SDLGamepad::Close)
   });
 
   constructor = Persistent(func);
@@ -33,8 +32,7 @@ Object SDLGamepad::Init(Napi::Env env, Object exports) {
   return exports;
 }
 
-SDLGamepad::SDLGamepad(const CallbackInfo& info)
-        : ObjectWrap<SDLGamepad>(info), joystick(nullptr), id(-1), axisCount(0), buttonCount(0), hatCount(0) {
+SDLGamepad::SDLGamepad(const CallbackInfo& info) : ObjectWrap<SDLGamepad>(info), joystick(nullptr) {
     auto index = info[0].As<Number>().Int32Value();
 
     this->joystick = SDL_JoystickOpen(index);
@@ -42,55 +40,56 @@ SDLGamepad::SDLGamepad(const CallbackInfo& info)
     if (!this->joystick) {
         throw Error::New(info.Env(), Format() << "Failed to open joystick at index " << index << ". " << SDL_GetError());
     }
-
-    this->id = SDL_JoystickInstanceID(joystick);
-
-    auto joystickGUID = SDL_JoystickGetGUID(this->joystick);
-    char guidStr[33];
-
-    SDL_JoystickGetGUIDString(joystickGUID, guidStr, 33);
-
-    this->guid = guidStr;
-    this->name = SDL_JoystickName(joystick);
-    this->axisCount = SDL_JoystickNumAxes(joystick);
-    this->buttonCount = SDL_JoystickNumButtons(joystick);
-    this->hatCount = SDL_JoystickNumHats(joystick);
-
-    auto gamecontrollerMapping = SDL_GameControllerMappingForGUID(joystickGUID);
-
-    this->mapping = gamecontrollerMapping ? gamecontrollerMapping : "";
 }
 
-Value SDLGamepad::Count(const CallbackInfo& info) {
-    return Number::New(info.Env(), SDL_NumJoysticks());
+SDL_Joystick *SDLGamepad::GetJoystickOrThrow(Napi::Env env) {
+    if (!this->joystick) {
+        throw Error::New(env, "Joystick has been closed!");
+    }
+
+    return this->joystick;
 }
 
 Value SDLGamepad::GetId(const CallbackInfo& info) {
-    return Number::New(info.Env(), this->id);
+    auto id = SDL_JoystickInstanceID(this->GetJoystickOrThrow(info.Env()));
+
+    return Number::New(info.Env(), id);
 }
 
 Value SDLGamepad::GetGUID(const CallbackInfo& info) {
-    return String::New(info.Env(), this->guid);
+    auto joystickGUID = SDL_JoystickGetGUID(this->GetJoystickOrThrow(info.Env()));
+    char guid[33];
+
+    SDL_JoystickGetGUIDString(joystickGUID, guid, 33);
+
+    return String::New(info.Env(), guid);
 }
 
 Value SDLGamepad::GetName(const CallbackInfo& info) {
-    return String::New(info.Env(), this->name);
+    return String::New(info.Env(), SDL_JoystickName(this->GetJoystickOrThrow(info.Env())));
 }
 
 Value SDLGamepad::GetAxisCount(const CallbackInfo& info) {
-    return Number::New(info.Env(), this->axisCount);
+    return Number::New(info.Env(), SDL_JoystickNumAxes(this->GetJoystickOrThrow(info.Env())));
 }
 
 Value SDLGamepad::GetButtonCount(const CallbackInfo& info) {
-    return Number::New(info.Env(), this->buttonCount);
+    return Number::New(info.Env(), SDL_JoystickNumButtons(this->GetJoystickOrThrow(info.Env())));
 }
 
 Value SDLGamepad::GetHatCount(const CallbackInfo& info) {
-    return Number::New(info.Env(), this->hatCount);
+    return Number::New(info.Env(), SDL_JoystickNumHats(this->GetJoystickOrThrow(info.Env())));
 }
 
-Value SDLGamepad::GetMapping(const CallbackInfo& info) {
-    return String::New(info.Env(), this->mapping);
+Value SDLGamepad::GetGameControllerMapping(const CallbackInfo& info) {
+    auto env = info.Env();
+    auto mapping = SDL_GameControllerMappingForGUID(SDL_JoystickGetGUID(this->GetJoystickOrThrow(env)));
+
+    if (mapping) {
+        return String::New(env, mapping);
+    }
+
+    return env.Undefined();
 }
 
 void SDLGamepad::Close(const CallbackInfo& info) {

@@ -21,7 +21,9 @@ const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json')))
 const external = [
   ...Object.keys(pkg.dependencies),
   ...Object.keys(pkg.peerDependencies),
-  ...builtinModules
+  ...builtinModules,
+  'fbjs/lib/emptyObject',
+  'fbjs/lib/emptyFunction'
 ]
 
 const resolveOpts = {

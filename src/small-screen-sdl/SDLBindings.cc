@@ -23,8 +23,14 @@ void JS_Quit(const CallbackInfo& info) {
 }
 
 void JS_Init(const CallbackInfo& info) {
-    if (SDL_Init(info[0].As<Number>().Uint32Value()) != 0) {
+    auto initFlags = info[0].As<Number>().Uint32Value();
+
+    if (SDL_Init(initFlags) != 0) {
         throw Error::New(info.Env(), Format() << "Error initializing SDL Audio: " << SDL_GetError());
+    }
+
+    if (initFlags & SDL_INIT_GAMECONTROLLER) {
+        SDL_GameControllerEventState(SDL_IGNORE);
     }
 }
 
@@ -282,6 +288,27 @@ void JS_DestroyTexture(const CallbackInfo& info) {
     }
 }
 
+void JS_AddGameControllerMappings(const CallbackInfo& info) {
+    int result;
+
+    if (info[0].IsBuffer()) {
+        auto buffer = info[0].As<Buffer<unsigned char>>();
+
+        result = SDL_GameControllerAddMappingsFromRW(SDL_RWFromMem(static_cast<void *>(buffer.Data()), buffer.Length()), 1);
+    } else if (info[0].IsString()) {
+        result = SDL_GameControllerAddMappingsFromFile(info[0].As<String>().Utf8Value().c_str());
+    } else {
+        throw Error::New(info.Env(), "addGameControllerMappings: Expected string filename or buffer object.");
+    }
+
+    if (result == -1) {
+        throw Error::New(info.Env(), Format() << "addGameControllerMappings: Failed to load game controller database from file. " << SDL_GetError());
+    }
+}
+
+Value JS_GetGamepadCount(const CallbackInfo& info) {
+    return Number::New(info.Env(), SDL_NumJoysticks());
+}
 
 
 
@@ -464,6 +491,8 @@ Object SDLBindingsInit(Env env, Object exports) {
     exports["createTexture"] = Function::New(env, JS_CreateTexture, "createTexture");
     exports["createFontTexture"] = Function::New(env, JS_CreateFontTexture, "createFontTexture");
     exports["destroyTexture"] = Function::New(env, JS_DestroyTexture, "destroyTexture");
+    exports["addGameControllerMappings"] = Function::New(env, JS_AddGameControllerMappings, "addGameControllerMappings");
+    exports["getGamepadCount"] = Function::New(env, JS_GetGamepadCount, "getGamepadCount");
 
     exports["SDL_VERSION"] = String::New(env, GetSDLVersion());
     exports["SDL_EVENT_SIZE"] = Number::New(env, sizeof(SDL_Event));

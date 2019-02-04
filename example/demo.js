@@ -167,16 +167,15 @@ const TextPage = (props) => {
 const GamepadPage = (props) => {
   let list = []
 
-  for (const gamepad of Input.gamepads()) {
+  for (const gamepad of Input.getGamepads()) {
     list.push(
       <box key={gamepad.id}>
         <text style={styles.gamepadName}>{gamepad.name}</text>
         <box style={styles.gamepadDetailsList}>
           <text style={styles.gamepadDetailsListItem}>{`Instance ID: ${gamepad.id}`}</text>
-          <text style={styles.gamepadDetailsListItem}>{`GUID: ${gamepad.guid}`}</text>
-          <text style={styles.gamepadDetailsListItem}>{`Buttons: ${gamepad.buttonCount}`}</text>
-          <text style={styles.gamepadDetailsListItem}>{`Axes: ${gamepad.axisCount}`}</text>
-          <text style={styles.gamepadDetailsListItem}>{`SDL Mapping: ${gamepad.mapping ? 'yes' : 'no'}`}</text>
+          <text style={styles.gamepadDetailsListItem}>{`GUID: ${gamepad.uuid}`}</text>
+          <text style={styles.gamepadDetailsListItem}>{`Buttons: ${gamepad.buttons.length}`}</text>
+          <text style={styles.gamepadDetailsListItem}>{`Axes: ${gamepad.axes.length}`}</text>
         </box>
       </box>
     )
