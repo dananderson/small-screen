@@ -26,7 +26,7 @@ void JS_Init(const CallbackInfo& info) {
     auto initFlags = info[0].As<Number>().Uint32Value();
 
     if (SDL_Init(initFlags) != 0) {
-        throw Error::New(info.Env(), Format() << "Error initializing SDL Audio: " << SDL_GetError());
+        throw Error::New(info.Env(), Format() << "Error initializing SDL: " << SDL_GetError());
     }
 
     if (initFlags & SDL_INIT_GAMECONTROLLER) {
