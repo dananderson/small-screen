@@ -8,22 +8,28 @@ import { assert } from 'chai'
 import { Input } from '../../../lib/Public/Input'
 import { Keyboard } from '../../../lib/Core/Platform/Keyboard'
 import { StandardMapping } from '../../../lib/Core/Input/StandardMapping'
+import { testSetApplication } from '../../../lib/Public'
+import sinon from 'sinon'
+import { InputManager } from '../../../lib/Core/Input/InputManager'
+import { SDLWindow } from '../../../lib/Core/Platform/SDLWindow'
 
 const UUID = '03000000-5e04-0000-fd02-000003090000'
 
 describe('Input', () => {
   let listener = event => {}
-
+  let app
   describe('setEnabled()', () => {
     it('should turn on input events', () => {
       Input.setEnabled(true)
 
-      assert.isTrue(Input.isEnabled())
+      sinon.assert.calledOnce(app.input.setEnabled)
+      sinon.assert.calledWith(app.input.setEnabled, true)
     })
     it('should turn off input events', () => {
       Input.setEnabled(false)
 
-      assert.isFalse(Input.isEnabled())
+      sinon.assert.calledOnce(app.input.setEnabled)
+      sinon.assert.calledWith(app.input.setEnabled, false)
     })
   })
   describe('getGamepads()', () => {
@@ -62,9 +68,15 @@ describe('Input', () => {
       assert.strictEqual(Input.getMapping(UUID), mapping)
     })
   })
+  beforeEach(() => {
+    testSetApplication(app = {
+      input: sinon.createStubInstance(InputManager),
+      window: sinon.createStubInstance(SDLWindow)
+    })
+    app.window.keyboard = sinon.createStubInstance(Keyboard)
+    app.input.mappings = new Map()
+  })
   afterEach(() => {
-    Input.setEnabled(true)
-    Input.removeEventListener(Input.Events.connected, listener)
-    Input.setMapping(UUID)
+    testSetApplication()
   })
 })
