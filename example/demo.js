@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import { main, Style, StyleSheet, FocusGroup, Scene, Input } from '../lib/export'
+import { main, Style, StyleSheet, FocusGroup, Application, Input } from '../lib/export'
 
 const styles = StyleSheet({
   background: {
@@ -214,7 +214,7 @@ class Demo extends React.Component {
   }
 
   componentDidMount () {
-    Scene.findView(this).getViewById('tab1').requestFocus()
+    Application.findView(this).getViewById('tab1').requestFocus()
   }
 }
 
