@@ -17,6 +17,7 @@ describe('View Test', () => {
   }
   let view
   let child
+  let baselineViewCount
 
   describe('constructor', () => {
     it('should set accept props', () => {
@@ -40,33 +41,33 @@ describe('View Test', () => {
   })
   describe('destroy()', () => {
     it('should release views', () => {
-      assert.equal(Yoga.getInstanceCount(), 0)
+      assert.equal(Yoga.getInstanceCount(), baselineViewCount)
 
       view = new View(undefined, app)
 
-      assert.equal(Yoga.getInstanceCount(), 1)
+      assert.equal(Yoga.getInstanceCount(), baselineViewCount + 1)
       assert.exists(view.node)
 
       view.destroy()
 
-      assert.equal(Yoga.getInstanceCount(), 0)
+      assert.equal(Yoga.getInstanceCount(), baselineViewCount)
       assert.isUndefined(view.node)
     })
     it('should release views recursively', () => {
-      assert.equal(Yoga.getInstanceCount(), 0)
+      assert.equal(Yoga.getInstanceCount(), baselineViewCount)
 
       view = new View(undefined, app)
       child = new View(undefined, app)
 
       view.appendChild(child)
 
-      assert.equal(Yoga.getInstanceCount(), 2)
+      assert.equal(Yoga.getInstanceCount(), baselineViewCount + 2)
       assert.exists(view.node)
       assert.exists(child.node)
 
       view.destroy()
 
-      assert.equal(Yoga.getInstanceCount(), 0)
+      assert.equal(Yoga.getInstanceCount(), baselineViewCount)
       assert.isUndefined(view.node)
       assert.isUndefined(child.node)
     })
@@ -76,7 +77,11 @@ describe('View Test', () => {
       view.destroy()
     })
   })
-
+  beforeEach(() => {
+    // if application initialized, it might have created a View for root. do this tests view counts based on the start
+    // of each test to avoid conflicting with application's active Views.
+    baselineViewCount = Yoga.getInstanceCount()
+  })
   afterEach(() => {
     child && child.destroy()
     view && view.destroy()
