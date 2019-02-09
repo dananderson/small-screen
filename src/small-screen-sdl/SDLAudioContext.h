@@ -21,6 +21,9 @@ public:
     void Detach(const Napi::CallbackInfo& info);
     Napi::Value CreateAudioSample(const Napi::CallbackInfo& info);
     void DestroyAudioSample(const Napi::CallbackInfo& info);
+    Napi::Value GetAudioSampleFormats(const Napi::CallbackInfo& info);
+    Napi::Value GetAudioStreamFormats(const Napi::CallbackInfo& info);
+
 
 private:
     static Napi::FunctionReference constructor;

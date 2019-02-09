@@ -27,6 +27,9 @@ public:
     Napi::Value GetGameControllerMapping(const Napi::CallbackInfo& info);
     void Close(const Napi::CallbackInfo& info);
 
+    static Napi::Value Length(const Napi::CallbackInfo& info);
+    static Napi::Value GetIdForIndex(const Napi::CallbackInfo& info);
+
 private:
     static Napi::FunctionReference constructor;
     SDL_Joystick *joystick;

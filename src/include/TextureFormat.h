@@ -12,6 +12,7 @@
 #include "Format.h"
 
 enum TextureFormat {
+    TEXTURE_FORMAT_NONE = -1,
     TEXTURE_FORMAT_RGBA = 0,
     TEXTURE_FORMAT_ARGB = 1,
     TEXTURE_FORMAT_ABGR = 2,

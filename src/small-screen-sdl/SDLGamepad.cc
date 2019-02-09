@@ -21,7 +21,9 @@ Object SDLGamepad::Init(Napi::Env env, Object exports) {
     InstanceMethod("getButtonCount", &SDLGamepad::GetButtonCount),
     InstanceMethod("getHatCount", &SDLGamepad::GetHatCount),
     InstanceMethod("getGameControllerMapping", &SDLGamepad::GetGameControllerMapping),
-    InstanceMethod("close", &SDLGamepad::Close)
+    InstanceMethod("close", &SDLGamepad::Close),
+    StaticAccessor("length", &SDLGamepad::Length, nullptr),
+    StaticMethod("getIdForIndex", &SDLGamepad::GetIdForIndex),
   });
 
   constructor = Persistent(func);
@@ -98,4 +100,13 @@ void SDLGamepad::Close(const CallbackInfo& info) {
         this->joystick = nullptr;
     }
 }
-    
+
+Napi::Value SDLGamepad::Length(const Napi::CallbackInfo& info) {
+    return Number::New(info.Env(), SDL_NumJoysticks());
+}
+
+Napi::Value SDLGamepad::GetIdForIndex(const Napi::CallbackInfo& info) {
+    auto index = info[0].As<Number>().Int32Value();
+
+    return Number::New(info.Env(), SDL_JoystickGetDeviceInstanceID(index));
+}

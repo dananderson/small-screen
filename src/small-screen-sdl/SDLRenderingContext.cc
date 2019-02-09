@@ -9,6 +9,7 @@
 #include "FontSample.h"
 #include "TextLayout.h"
 #include "CapInsets.h"
+#include "SDLClient.h"
 
 using namespace Napi;
 
@@ -71,7 +72,9 @@ void SDLRenderingContext::PopStyle(const CallbackInfo& info) {
 }
 
 Value SDLRenderingContext::Reset(const CallbackInfo& info) {
-    this->renderer = info[0].As<External<SDL_Renderer>>().Data();
+    auto client = ObjectWrap<SDLClient>::Unwrap(info[0].As<Object>());
+
+    this->renderer = client->GetRenderer();
     this->opacity = 255;
     this->wx = this->wy = 0;
     

@@ -8,6 +8,7 @@
 #include "SDLRenderingContext.h"
 #include "SDLGamepad.h"
 #include "SDLAudioContext.h"
+#include "SDLClient.h"
 #include "napi.h"
 
 using namespace Napi;
@@ -17,6 +18,7 @@ Object Init(Env env, Object exports) {
     SDLRenderingContext::Init(env, exports);
     SDLGamepad::Init(env, exports);
     SDLAudioContext::Init(env, exports);
+    SDLClient::Init(env, exports);
 
     return exports;
 }

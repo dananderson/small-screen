@@ -89,6 +89,7 @@
       ],
       "sources": [
         "src/common/Util.cc",
+        "src/small-screen-sdl/SDLClient.cc",
         "src/small-screen-sdl/SDLRenderingContext.cc",
         "src/small-screen-sdl/SDLAudioContext.cc",
         "src/small-screen-sdl/SDLGamepad.cc",

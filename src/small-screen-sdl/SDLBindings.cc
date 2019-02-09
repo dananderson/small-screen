@@ -8,115 +8,213 @@
 #include <SDL.h>
 #include "Util.h"
 #include <cstdio>
+#include <cstdlib>
 #include "Format.h"
 #include "TextureFormat.h"
+#include <set>
 #include <vector>
 #include <algorithm>
 #include <map>
 #include <iostream>
 #include "FontSample.h"
+#include "SDLClient.h"
 
 using namespace Napi;
 
-void JS_Quit(const CallbackInfo& info) {
+Value toResolution(const Env env, int width, int height);
+Uint32 getTexturePixelFormat(const SDL_DisplayMode& screen, const SDL_RendererInfo& renderInfo);
+TextureFormat getTextureFormat(Uint32 pixelFormat);
+std::string getTextureFormatName(TextureFormat textureFormat);
+void AddGameControllerMappings();
+void LoadGameControllerMappings();
+
+static const std::vector<Uint32> TEXTURE_PIXEL_FORMATS = {
+    SDL_PIXELFORMAT_ARGB8888,
+    SDL_PIXELFORMAT_RGBA8888,
+    SDL_PIXELFORMAT_ABGR8888,
+    SDL_PIXELFORMAT_BGRA8888
+};
+
+static std::vector<unsigned char> sGameControllerMappings;
+static bool sGameControllerMappingsTried = false;
+
+struct Resolution {
+    int width;
+    int height;
+
+    Resolution() : width(0), height(0) {
+
+    }
+
+    Resolution(int width, int height) : width(width), height(height) {
+
+    }
+
+    bool Equals(int width, int height) {
+        return width == this->width && height == this->height;
+    }
+
+    bool operator<(const Resolution &rhs) const {
+        return std::tie(this->width, this->height) < std::tie(rhs.width, rhs.height);
+    }
+};
+
+void JS_Attach(const CallbackInfo& info) {
+    if (SDL_WasInit(SDL_INIT_VIDEO) == 0) {
+        if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_VIDEO): " << SDL_GetError());
+        }
+    }
+
+    if (SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0) {
+        if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
+            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER): " << SDL_GetError());
+        }
+
+        SDL_GameControllerEventState(SDL_IGNORE);
+        AddGameControllerMappings();
+    }
+
+    // Optional
+    if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
+        SDL_Init(SDL_INIT_AUDIO);
+    }
+}
+
+void JS_Detach(const CallbackInfo& info) {
     SDL_Quit();
 }
 
 void JS_Init(const CallbackInfo& info) {
-    auto initFlags = info[0].As<Number>().Uint32Value();
+    auto options = info[0].As<Object>();
 
-    if (SDL_Init(initFlags) != 0) {
-        throw Error::New(info.Env(), Format() << "Error initializing SDL: " << SDL_GetError());
+    if (SDL_WasInit(SDL_INIT_VIDEO) == 0 && options.Has("video") && options.Get("video").ToBoolean().Value()) {
+        if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_VIDEO): " << SDL_GetError());
+        }
     }
 
-    if (initFlags & SDL_INIT_GAMECONTROLLER) {
-        SDL_GameControllerEventState(SDL_IGNORE);
-    }
-}
-
-Value JS_CreateWindow(const CallbackInfo& info) {
-    auto title = info[0].As<String>().Utf8Value();
-    auto width = info[1].As<Number>().Uint32Value();
-    auto height = info[2].As<Number>().Uint32Value();
-    auto fullscreen = info[3].As<Boolean>().Value();
-
-    Uint32 windowFlags;
-    int x;
-    int y;
-
-    if (fullscreen) {
-        SDL_ShowCursor(0);
-        x = y = SDL_WINDOWPOS_UNDEFINED;
-        windowFlags = SDL_WINDOW_FULLSCREEN;
-    } else {
-        x = y = SDL_WINDOWPOS_CENTERED;
-        windowFlags = 0;
+    if (SDL_WasInit(SDL_INIT_AUDIO) == 0 && options.Has("audio") && options.Get("audio").ToBoolean().Value()) {
+        if (SDL_Init(SDL_INIT_AUDIO) != 0) {
+            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_AUDIO): " << SDL_GetError());
+        }
     }
 
-    auto window = SDL_CreateWindow(title.c_str(), x, y, width, height, windowFlags);
-
-    if (!window) {
-        throw Error::New(info.Env(), Format() << "SDL_CreateWindow(): " << SDL_GetError());
-    }
-
-    return External<SDL_Window>::New(info.Env(), window);
-}
-
-void JS_DestroyWindow(const CallbackInfo& info) {
-    auto window = info[0].IsExternal() ? info[0].As<External<SDL_Window>>().Data() : nullptr;
-
-    if (window) {
-        SDL_DestroyWindow(window);
-    }
-}
-
-Value JS_CreateRenderer(const CallbackInfo& info) {
-    auto window = info[0].As<External<SDL_Window>>().Data();
-    auto vsync = info[1].As<Boolean>().Value();
-
-    auto flags = SDL_RENDERER_TARGETTEXTURE | SDL_RENDERER_ACCELERATED;
-
-    if (vsync) {
-        flags |= SDL_RENDERER_PRESENTVSYNC;
-    }
-
-    auto renderer = SDL_CreateRenderer(window, 0, flags);
-
-    if (!renderer) {
-        throw Error::New(info.Env(), Format() << "SDL_CreateRenderer(): " << SDL_GetError());
-    }
-
-    return External<SDL_Renderer>::New(info.Env(), renderer);
-}
-
-void JS_DestroyRenderer(const CallbackInfo& info) {
-    auto renderer = info[0].IsExternal() ? info[0].As<External<SDL_Renderer>>().Data() : nullptr;
-
-    if (renderer) {
-        SDL_DestroyRenderer(renderer);
-    }
-}
-
-Value JS_GetCreateTextureFormat(const CallbackInfo& info) {
-    auto env = info.Env();
-    SDL_DisplayMode desktop;
-    std::vector<Uint32> compatibleFormats = { SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_RGBA8888, SDL_PIXELFORMAT_ABGR8888, SDL_PIXELFORMAT_BGRA8888 };
-    Uint32 pixelFormat = 0;
-
-    if (SDL_GetDesktopDisplayMode(0, &desktop) != 0) {
-        throw Error::New(env, Format() << "SDL_GetDesktopDisplayMode(): " << SDL_GetError());
-    }
-
-    if(std::find(compatibleFormats.begin(), compatibleFormats.end(), desktop.format) != compatibleFormats.end()) {
-        pixelFormat = desktop.format;
-    } else {
-        SDL_RendererInfo rendererInfo;
-
-        if (SDL_GetRenderDriverInfo(0, &rendererInfo) != 0) {
-            throw Error::New(env, Format() << "SDL_GetRenderDriverInfo(): " << SDL_GetError());
+    if (SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0 && options.Has("gamepad") && options.Get("gamepad").ToBoolean().Value()) {
+        if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
+            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER): " << SDL_GetError());
         }
 
-        for (auto &p : compatibleFormats) {
+        SDL_GameControllerEventState(SDL_IGNORE);
+        AddGameControllerMappings();
+    }
+}
+
+Object GetCapabilities(Napi::Env env) {
+    auto caps = Object::New(env);
+
+    caps["hasGraphics"] = SDL_WasInit(SDL_INIT_VIDEO) != 0;
+    caps["hasGamepad"] = SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0;
+    caps["hasAudio"] = SDL_WasInit(SDL_INIT_AUDIO) != 0;
+
+    SDL_DisplayMode screenDisplayMode = {};
+    SDL_Rect usableBounds = {};
+    SDL_RendererInfo rendererInfo = {};
+
+    SDL_GetRenderDriverInfo(0, &rendererInfo);
+    SDL_GetDesktopDisplayMode(0, &screenDisplayMode);
+    SDL_GetDisplayUsableBounds(0, &usableBounds);
+
+    auto windowManagerBounds = Object::New(env);
+
+    windowManagerBounds["x"] = usableBounds.x;
+    windowManagerBounds["y"] = usableBounds.y;
+    windowManagerBounds["width"] = usableBounds.w;
+    windowManagerBounds["height"] = usableBounds.h;
+
+    SDL_DisplayMode displayMode = {};
+    auto numDisplayModes = SDL_GetNumDisplayModes(0);
+    std::set<Resolution> resolutionSet;
+
+    for (auto i = 0; i < numDisplayModes; i++) {
+        if (SDL_GetDisplayMode(0, i, &displayMode) == 0) {
+            resolutionSet.insert(Resolution(displayMode.w, displayMode.h));
+        }
+    }
+
+    auto resolutions = Array::New(env);
+
+    for (auto& p : resolutionSet) {
+        resolutions[resolutions.Length()] = toResolution(env, p.width, p.height);
+    }
+
+    auto texturePixelFormat = getTexturePixelFormat(screenDisplayMode, rendererInfo);
+    auto textureFormat = getTextureFormat(texturePixelFormat);
+
+    caps["driverName"] = String::New(env, rendererInfo.name);
+    caps["defaultResolution"] = toResolution(env, screenDisplayMode.w, screenDisplayMode.h);
+    caps["windowManagerBounds"] = windowManagerBounds;
+    caps["texturePixelFormat"] = Number::New(env, texturePixelFormat);
+    caps["texturePixelFormatName"] = String::New(env, SDL_GetPixelFormatName(texturePixelFormat));
+    caps["textureFormat"] = Number::New(env, textureFormat);
+    caps["textureFormatName"] = String::New(env, getTextureFormatName(textureFormat));
+    caps["availableResolutions"] = resolutions;
+    caps["vsync"] = Boolean::New(env, (rendererInfo.flags & SDL_RENDERER_PRESENTVSYNC) != 0);
+
+    return caps;
+}
+
+void LoadGameControllerMappings() {
+    auto GAME_CONTROLLER_MAPPINGS = std::getenv("GAME_CONTROLLER_MAPPINGS");
+
+    if (GAME_CONTROLLER_MAPPINGS != nullptr) {
+        auto file = std::string(GAME_CONTROLLER_MAPPINGS);
+
+        if (!file.empty() && file[0] == '~') {
+            auto HOME = std::getenv("HOME");
+
+            if (HOME != nullptr) {
+                file.replace(0, 1, HOME);
+            }
+        }
+
+        if (!file.empty()) {
+            try {
+                sGameControllerMappings.clear();
+                ReadBytesFromFile(file, sGameControllerMappings);
+                if (!sGameControllerMappings.empty()) {
+                    std::cout << "Loaded GAME_CONTROLLER_MAPPINGS=\"" << GAME_CONTROLLER_MAPPINGS << "\"" << std::endl;
+                }
+            } catch (...) {
+                std::cout << "Failed to read GAME_CONTROLLER_MAPPINGS=\"" << GAME_CONTROLLER_MAPPINGS << "\"" << std::endl;
+            }
+        }
+    }
+}
+
+void AddGameControllerMappings() {
+    if (!sGameControllerMappingsTried) {
+        LoadGameControllerMappings();
+        sGameControllerMappingsTried = true;
+    }
+
+    if (!sGameControllerMappings.empty()) {
+        auto result = SDL_GameControllerAddMappingsFromRW(
+            SDL_RWFromMem(static_cast<void *>(&sGameControllerMappings[0]), sGameControllerMappings.size()), 1);
+
+        if (result == -1) {
+            std::cout << "SDL_GameControllerAddMappings: Error: " << SDL_GetError() << std::endl;
+        }
+    }
+}
+
+Uint32 getTexturePixelFormat(const SDL_DisplayMode& screen, const SDL_RendererInfo& rendererInfo) {
+    Uint32 pixelFormat = SDL_PIXELFORMAT_UNKNOWN;
+
+    if(std::find(TEXTURE_PIXEL_FORMATS.begin(), TEXTURE_PIXEL_FORMATS.end(), screen.format) != TEXTURE_PIXEL_FORMATS.end()) {
+        pixelFormat = screen.format;
+    } else {
+        for (auto &p : TEXTURE_PIXEL_FORMATS) {
             for (int i = 0; i < (int)rendererInfo.num_texture_formats; i++) {
                 if (p == rendererInfo.texture_formats[i]) {
                     pixelFormat = p;
@@ -126,31 +224,37 @@ Value JS_GetCreateTextureFormat(const CallbackInfo& info) {
         }
     }
 
-    TextureFormat textureFormat;
+    return pixelFormat;
+}
 
+TextureFormat getTextureFormat(Uint32 pixelFormat) {
     switch (pixelFormat) {
         case SDL_PIXELFORMAT_ARGB8888:
-            textureFormat = TEXTURE_FORMAT_ARGB;
-            break;
+            return TEXTURE_FORMAT_ARGB;
         case SDL_PIXELFORMAT_RGBA8888:
-            textureFormat = TEXTURE_FORMAT_RGBA;
-            break;
+            return TEXTURE_FORMAT_RGBA;
         case SDL_PIXELFORMAT_ABGR8888:
-            textureFormat = TEXTURE_FORMAT_ABGR;
-            break;
+            return TEXTURE_FORMAT_ABGR;
         case SDL_PIXELFORMAT_BGRA8888:
-            textureFormat = TEXTURE_FORMAT_BGRA;
-            break;
+            return TEXTURE_FORMAT_BGRA;
         default:
-            throw Error::New(env, "Error: The graphics device does not have a 4 channel, 32-bit texture format.");
+            return TEXTURE_FORMAT_NONE;
     }
+}
 
-    auto ret = Object::New(env);
-
-    ret["pixelFormat"] = Number::New(env, pixelFormat);
-    ret["textureFormat"] = Number::New(env, textureFormat);
-
-    return ret;
+std::string getTextureFormatName(TextureFormat textureFormat) {
+    switch (textureFormat) {
+        case TEXTURE_FORMAT_RGBA:
+            return "rgba";
+        case TEXTURE_FORMAT_ARGB:
+            return "argb";
+        case TEXTURE_FORMAT_ABGR:
+            return "abgr";
+        case TEXTURE_FORMAT_BGRA:
+            return "bgra";
+        default:
+            return "none";
+    }
 }
 
 Value JS_GetEvents(const CallbackInfo& info) {
@@ -166,13 +270,13 @@ Value JS_GetEvents(const CallbackInfo& info) {
 }
 
 Value JS_CreateFontTexture(const CallbackInfo& info) {
-    auto renderer = info[0].As<External<SDL_Renderer>>().Data();
+    auto client = ObjectWrap<SDLClient>::Unwrap(info[0].As<Object>());
     auto sample = info[1].As<External<FontSample>>().Data();
     auto format = info[2].As<Number>().Uint32Value();
     auto width = sample->GetTextureWidth();
     auto height = sample->GetTextureHeight();
 
-    auto texture = SDL_CreateTexture(renderer,
+    auto texture = SDL_CreateTexture(client->GetRenderer(),
                                      format,
                                      SDL_TEXTUREACCESS_STREAMING,
                                      width,
@@ -230,13 +334,13 @@ Value JS_CreateFontTexture(const CallbackInfo& info) {
 }
 
 Value JS_CreateTexture(const CallbackInfo& info) {
-    auto renderer = info[0].As<External<SDL_Renderer>>().Data();
+    auto client = ObjectWrap<SDLClient>::Unwrap(info[0].As<Object>());
     auto width = info[1].As<Number>().Int32Value();
     auto height = info[2].As<Number>().Int32Value();
     auto format = info[3].As<Number>().Uint32Value();
     auto source = info[4].As<Buffer<Uint8>>().Data();
 
-    auto texture = SDL_CreateTexture(renderer,
+    auto texture = SDL_CreateTexture(client->GetRenderer(),
                                      format,
                                      SDL_TEXTUREACCESS_STREAMING,
                                      width,
@@ -288,186 +392,14 @@ void JS_DestroyTexture(const CallbackInfo& info) {
     }
 }
 
-void JS_AddGameControllerMappings(const CallbackInfo& info) {
-    int result;
-
-    if (info[0].IsBuffer()) {
-        auto buffer = info[0].As<Buffer<unsigned char>>();
-
-        result = SDL_GameControllerAddMappingsFromRW(SDL_RWFromMem(static_cast<void *>(buffer.Data()), buffer.Length()), 1);
-    } else if (info[0].IsString()) {
-        result = SDL_GameControllerAddMappingsFromFile(info[0].As<String>().Utf8Value().c_str());
-    } else {
-        throw Error::New(info.Env(), "addGameControllerMappings: Expected string filename or buffer object.");
-    }
-
-    if (result == -1) {
-        throw Error::New(info.Env(), Format() << "addGameControllerMappings: Failed to load game controller database from file. " << SDL_GetError());
-    }
-}
-
-Value JS_GetGamepadCount(const CallbackInfo& info) {
-    return Number::New(info.Env(), SDL_NumJoysticks());
-}
-
-
-
-
-
-// extern DECLSPEC const char *SDLCALL SDL_GetError(void);
-Value JS_SDL_GetError(const CallbackInfo& info) {
-    auto message = SDL_GetError();
-
-    return String::New(info.Env(), message);
-}
-
-// extern DECLSPEC Uint32 SDLCALL SDL_GetWindowFlags(SDL_Window * window);
-Value JS_SDL_GetWindowFlags(const CallbackInfo& info) {
-    auto window = info[0].As<External<SDL_Window>>();
-
-    return Number::New(info.Env(), SDL_GetWindowFlags(reinterpret_cast<SDL_Window*>(window.Data())));
-}
-
-// extern DECLSPEC int SDLCALL SDL_GetRenderDriverInfo(int index, SDL_RendererInfo * info);
-Value JS_SDL_GetRenderDriverInfo(const CallbackInfo& info) {
-    auto env = info.Env();
-    auto index = info[0].As<Number>().Int32Value();
-    SDL_RendererInfo rendererInfo;
-
-    if (SDL_GetRenderDriverInfo(index, &rendererInfo) != 0) {
-        return env.Undefined();
-    }
-
-    auto textureFormats = Array::New(env, rendererInfo.num_texture_formats);
-
-    for (Uint32 i = 0; i < rendererInfo.num_texture_formats; i++) {
-        textureFormats[i] = rendererInfo.texture_formats[i];
-    }
-
+Value toResolution(const Env env, int width, int height) {
     auto result = Object::New(env);
 
-    result["name"] = String::New(env, rendererInfo.name);
-    result["flags"] = Number::New(env, rendererInfo.flags);
-    result["numTextureFormats"] = Number::New(env, rendererInfo.num_texture_formats);
-    result["textureFormats"] = textureFormats;
-    result["maxTextureWidth"] = Number::New(env, rendererInfo.max_texture_width);
-    result["maxTextureHeight"] = Number::New(env, rendererInfo.max_texture_height);
+    result["width"] = Number::New(env, width);
+    result["height"] = Number::New(env, height);
 
     return result;
 }
-
-// extern DECLSPEC void SDLCALL SDL_RenderPresent(SDL_Renderer * renderer);
-void JS_SDL_RenderPresent(const CallbackInfo& info) {
-    SDL_RenderPresent(info[0].As<External<SDL_Renderer>>().Data());
-}
-
-// extern DECLSPEC int SDLCALL SDL_GetRendererOutputSize(SDL_Renderer * renderer, int *w, int *h);
-Value JS_SDL_GetRendererOutputSize(const CallbackInfo& info) {
-    int w, h;
-
-    auto result = SDL_GetRendererOutputSize(info[0].As<External<SDL_Renderer>>().Data(), &w, &h);
-
-    if (result != 0) {
-        return info.Env().Undefined();
-    }
-
-    auto dimensions = Object::New(info.Env());
-
-    dimensions["width"] = w;
-    dimensions["height"] = h;
-
-    return dimensions;
-}
-
-// extern DECLSPEC Uint32 SDLCALL SDL_GetWindowPixelFormat(SDL_Window * window);
-Value JS_SDL_GetWindowPixelFormat(const CallbackInfo& info) {
-    auto result = SDL_GetWindowPixelFormat(info[0].As<External<SDL_Window>>().Data());
-
-    return Number::New(info.Env(), result);
-}
-
-// extern DECLSPEC int SDLCALL SDL_GetNumDisplayModes(int displayIndex);
-Value JS_SDL_GetNumDisplayModes(const CallbackInfo& info) {
-    auto result = SDL_GetNumDisplayModes(info[0].As<Number>().Int32Value());
-
-    return Number::New(info.Env(), result);
-}
-
-// extern DECLSPEC const char *SDLCALL SDL_GetWindowTitle(SDL_Window * window);
-Value JS_SDL_GetWindowTitle(const CallbackInfo& info) {
-    auto result = SDL_GetWindowTitle(info[0].As<External<SDL_Window>>().Data());
-
-    return String::New(info.Env(), result);
-}
-
-// extern DECLSPEC void SDLCALL SDL_SetWindowTitle(SDL_Window * window, const char *title);
-void JS_SDL_SetWindowTitle(const CallbackInfo& info) {
-    SDL_SetWindowTitle(info[0].As<External<SDL_Window>>().Data(),
-                       info[1].As<String>().Utf8Value().c_str());
-}
-
-Value toDisplayMode(const Env env, const SDL_DisplayMode& displayMode) {
-    auto result = Object::New(env);
-
-    result["width"] = Number::New(env, displayMode.w);
-    result["height"] = Number::New(env, displayMode.h);
-    result["format"] = Number::New(env, displayMode.format);
-    result["refreshRate"] = Number::New(env, displayMode.refresh_rate);
-
-    return result;
-}
-
-// extern DECLSPEC int SDLCALL SDL_GetDisplayMode(int displayIndex, int modeIndex, SDL_DisplayMode * mode);
-Value JS_SDL_GetDisplayMode(const CallbackInfo& info) {
-    SDL_DisplayMode displayMode;
-    auto result = SDL_GetDisplayMode(info[0].As<Number>().Int32Value(),
-                                     info[1].As<Number>().Int32Value(),
-                                     &displayMode);
-    if (result != 0) {
-        return info.Env().Undefined();
-    }
-
-    return toDisplayMode(info.Env(), displayMode);
-}
-
-// extern DECLSPEC int SDLCALL SDL_GetDesktopDisplayMode(int displayIndex, SDL_DisplayMode * mode);
-Value JS_SDL_GetDesktopDisplayMode(const CallbackInfo& info) {
-    SDL_DisplayMode displayMode;
-    auto result = SDL_GetDesktopDisplayMode(info[0].As<Number>().Int32Value(),
-                                            &displayMode);
-    if (result != 0) {
-        return info.Env().Undefined();
-    }
-
-    return toDisplayMode(info.Env(), displayMode);
-}
-
-// extern DECLSPEC int SDLCALL SDL_GetCurrentDisplayMode(int displayIndex, SDL_DisplayMode * mode);
-Value JS_SDL_GetCurrentDisplayMode(const CallbackInfo& info) {
-    SDL_DisplayMode displayMode;
-    auto result = SDL_GetCurrentDisplayMode(info[0].As<Number>().Int32Value(), &displayMode);
-    if (result != 0) {
-        return info.Env().Undefined();
-    }
-
-    return toDisplayMode(info.Env(), displayMode);
-}
-
-// extern DECLSPEC const char* SDLCALL SDL_GetPixelFormatName(Uint32 format);
-Value JS_SDL_GetPixelFormatName(const CallbackInfo& info) {
-    auto name = SDL_GetPixelFormatName(info[0].As<Number>().Uint32Value());
-
-    return String::New(info.Env(), name);
-}
-
-// extern DECLSPEC SDL_JoystickID SDLCALL SDL_JoystickGetDeviceInstanceID(int device_index);
-Value JS_SDL_JoystickGetDeviceInstanceID(const CallbackInfo& info) {
-    auto index = info[0].As<Number>().Int32Value();
-    auto instanceId = SDL_JoystickGetDeviceInstanceID(index);
-
-    return Number::New(info.Env(), instanceId);
-}
-
 
 std::string GetSDLVersion() {
     SDL_version linked;
@@ -477,62 +409,24 @@ std::string GetSDLVersion() {
 }
 
 Object SDLBindingsInit(Env env, Object exports) {
-    // XXX: Refactoring from old FFI code. These helper functions will be removed when the platform rendering
-    //      classes are moved down to native.
+    SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
-    exports["init"] = Function::New(env, JS_Init, "init");
-    exports["quit"] = Function::New(env, JS_Quit, "quit");
-    exports["createWindow"] = Function::New(env, JS_CreateWindow, "createWindow");
-    exports["destroyWindow"] = Function::New(env, JS_DestroyWindow, "destroyWindow");
-    exports["createRenderer"] = Function::New(env, JS_CreateRenderer, "createRenderer");
-    exports["destroyRenderer"] = Function::New(env, JS_DestroyRenderer, "destroyRenderer");
-    exports["getCreateTextureFormat"] = Function::New(env, JS_GetCreateTextureFormat, "getCreateTextureFormat");
+    if (SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
+        SDL_GameControllerEventState(SDL_IGNORE);
+        AddGameControllerMappings();
+    }
+
+    exports["attach"] = Function::New(env, JS_Attach, "attach");
+    exports["detach"] = Function::New(env, JS_Detach, "detach");
+    exports["capabilities"] = GetCapabilities(env);
+    exports["version"] = String::New(env, GetSDLVersion());
+    exports["eventSize"] = Number::New(env, sizeof(SDL_Event));
+
+    // TODO: refactor these free floating functions to a class
     exports["getEvents"] = Function::New(env, JS_GetEvents, "getEvents");
     exports["createTexture"] = Function::New(env, JS_CreateTexture, "createTexture");
     exports["createFontTexture"] = Function::New(env, JS_CreateFontTexture, "createFontTexture");
     exports["destroyTexture"] = Function::New(env, JS_DestroyTexture, "destroyTexture");
-    exports["addGameControllerMappings"] = Function::New(env, JS_AddGameControllerMappings, "addGameControllerMappings");
-    exports["getGamepadCount"] = Function::New(env, JS_GetGamepadCount, "getGamepadCount");
-
-    exports["SDL_VERSION"] = String::New(env, GetSDLVersion());
-    exports["SDL_EVENT_SIZE"] = Number::New(env, sizeof(SDL_Event));
-
-
-
-
-    exports["SDL_GetError"] = Function::New(env, JS_SDL_GetError, "SDL_GetError");
-    exports["SDL_GetWindowFlags"] = Function::New(env, JS_SDL_GetWindowFlags, "SDL_GetWindowFlags");
-    exports["SDL_GetRenderDriverInfo"] = Function::New(env, JS_SDL_GetRenderDriverInfo, "SDL_GetRenderDriverInfo");
-    exports["SDL_RenderPresent"] = Function::New(env, JS_SDL_RenderPresent, "SDL_RenderPresent");
-    exports["SDL_GetRendererOutputSize"] = Function::New(env, JS_SDL_GetRendererOutputSize, "SDL_GetRendererOutputSize");
-    exports["SDL_GetWindowPixelFormat"] = Function::New(env, JS_SDL_GetWindowPixelFormat, "SDL_GetWindowPixelFormat");
-    exports["SDL_GetNumDisplayModes"] = Function::New(env, JS_SDL_GetNumDisplayModes, "SDL_GetNumDisplayModes");
-    exports["SDL_GetWindowTitle"] = Function::New(env, JS_SDL_GetWindowTitle, "SDL_GetWindowTitle");
-    exports["SDL_SetWindowTitle"] = Function::New(env, JS_SDL_SetWindowTitle, "SDL_SetWindowTitle");
-    exports["SDL_GetDisplayMode"] = Function::New(env, JS_SDL_GetDisplayMode, "SDL_GetDisplayMode");
-    exports["SDL_GetDesktopDisplayMode"] = Function::New(env, JS_SDL_GetDesktopDisplayMode, "SDL_GetDesktopDisplayMode");
-    exports["SDL_GetCurrentDisplayMode"] = Function::New(env, JS_SDL_GetCurrentDisplayMode, "SDL_GetCurrentDisplayMode");
-    exports["SDL_GetPixelFormatName"] = Function::New(env, JS_SDL_GetPixelFormatName, "SDL_GetPixelFormatName");
-    exports["SDL_JoystickGetDeviceInstanceID"] = Function::New(env, JS_SDL_JoystickGetDeviceInstanceID, "SDL_JoystickGetDeviceInstanceID");
-
-    exports["SDL_INIT_TIMER"] = Number::New(env, SDL_INIT_TIMER);
-    exports["SDL_INIT_AUDIO"] = Number::New(env, SDL_INIT_AUDIO);
-    exports["SDL_INIT_VIDEO"] = Number::New(env, SDL_INIT_VIDEO);
-    exports["SDL_INIT_JOYSTICK"] = Number::New(env, SDL_INIT_JOYSTICK);
-    exports["SDL_INIT_HAPTIC"] = Number::New(env, SDL_INIT_HAPTIC);
-    exports["SDL_INIT_GAMECONTROLLER"] = Number::New(env, SDL_INIT_GAMECONTROLLER);
-    exports["SDL_INIT_EVENTS"] = Number::New(env, SDL_INIT_EVENTS);
-    exports["SDL_INIT_NOPARACHUTE"] = Number::New(env, SDL_INIT_NOPARACHUTE);
-    exports["SDL_INIT_EVERYTHING"] = Number::New(env, SDL_INIT_EVERYTHING);
-
-    auto renderFlags = Object::New(env);
-
-    exports["SDL_RendererFlags"] = renderFlags;
-
-    renderFlags["SDL_RENDERER_SOFTWARE"] = Number::New(env, SDL_RENDERER_SOFTWARE);
-    renderFlags["SDL_RENDERER_ACCELERATED"] = Number::New(env, SDL_RENDERER_ACCELERATED);
-    renderFlags["SDL_RENDERER_PRESENTVSYNC"] = Number::New(env, SDL_RENDERER_PRESENTVSYNC);
-    renderFlags["SDL_RENDERER_TARGETTEXTURE"] = Number::New(env, SDL_RENDERER_TARGETTEXTURE);
 
     return exports;
 }

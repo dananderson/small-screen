@@ -8,6 +8,8 @@
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <iostream>
+#include <string>
+#include <algorithm>
 #include "Format.h"
 
 using namespace Napi;
@@ -23,6 +25,8 @@ Object SDLMixerAudioContext::Init(class Env env, Object exports) {
         InstanceMethod("destroyAudioSample", &SDLMixerAudioContext::DestroyAudioSample),
         InstanceMethod("attach", &SDLMixerAudioContext::Attach),
         InstanceMethod("detach", &SDLMixerAudioContext::Detach),
+        InstanceMethod("getAudioSampleFormats", &SDLMixerAudioContext::GetAudioSampleFormats),
+        InstanceMethod("getAudioStreamFormats", &SDLMixerAudioContext::GetAudioStreamFormats),
     });
 
     constructor = Persistent(func);
@@ -42,31 +46,13 @@ void SDLMixerAudioContext::InitAudio(Napi::Env env) {
         return;
     }
 
-    if (SDL_WasInit(SDL_INIT_AUDIO) == 0 && SDL_Init(SDL_INIT_AUDIO) != 0) {
-        throw Error::New(env, Format() << "Cannot initialize audio. SDL_Init(SDL_INIT_AUDIO): " << SDL_GetError());
-    }
-
-    auto result = Mix_Init(MIX_INIT_FLAC | MIX_INIT_MOD | MIX_INIT_MP3 | MIX_INIT_OGG | MIX_INIT_MID | MIX_INIT_OPUS);
-
-    if (result == 0) {
-        throw Error::New(env, Format() << "Cannot initialize mixer. Mix_Init(): " << Mix_GetError());
+    if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
+        throw Error::New(env, "SDL Audio must be initialized before creating or attaching an SDLMixerAudioContext.");
     }
 
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0) {
         throw Error::New(env, Format() << "Cannot open mixer. Error: " << Mix_GetError());
     }
-
-    std::cout << "Supported audio sample types: ";
-
-    for (auto i = 0; i < Mix_GetNumChunkDecoders(); i++) {
-        if (i != 0) {
-            std::cout << ", ";
-        }
-
-        std::cout << Mix_GetChunkDecoder(i);
-    }
-
-    std::cout << std::endl;
 
     this->isOpen = true;
 }
@@ -123,4 +109,34 @@ void SDLMixerAudioContext::DestroyAudioSample(const CallbackInfo& info) {
     auto chunk = info[0].As<External<Mix_Chunk>>().Data();
 
     Mix_FreeChunk(chunk);
+}
+
+Value SDLMixerAudioContext::GetAudioSampleFormats(const CallbackInfo& info) {
+    auto env = info.Env();
+    auto numAudioSampleFormats = Mix_GetNumChunkDecoders();
+    auto audioSampleFormats = Array::New(env, numAudioSampleFormats);
+    std::string format;
+
+    for (auto i = 0; i < numAudioSampleFormats; i++) {
+        format = Mix_GetChunkDecoder(i);
+        std::transform(format.begin(), format.end(), format.begin(), ::tolower);
+        audioSampleFormats[i] = String::New(env, format);
+    }
+
+    return audioSampleFormats;
+}
+
+Value SDLMixerAudioContext::GetAudioStreamFormats(const CallbackInfo& info) {
+    auto env = info.Env();
+    auto numAudioStreamFormats = Mix_GetNumChunkDecoders();
+    auto audioStreamFormats = Array::New(env, numAudioStreamFormats);
+    std::string format;
+
+    for (auto i = 0; i < numAudioStreamFormats; i++) {
+        format = Mix_GetChunkDecoder(i);
+        std::transform(format.begin(), format.end(), format.begin(), ::tolower);
+        audioStreamFormats[i] = String::New(env, format);
+    }
+
+    return audioStreamFormats;
 }

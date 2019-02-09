@@ -22,6 +22,8 @@ Object SDLAudioContext::Init(class Env env, Object exports) {
         InstanceMethod("destroyAudioSample", &SDLAudioContext::DestroyAudioSample),
         InstanceMethod("attach", &SDLAudioContext::Attach),
         InstanceMethod("detach", &SDLAudioContext::Detach),
+        InstanceMethod("getAudioSampleFormats", &SDLAudioContext::GetAudioSampleFormats),
+        InstanceMethod("getAudioStreamFormats", &SDLAudioContext::GetAudioStreamFormats),
     });
 
     constructor = Persistent(func);
@@ -41,8 +43,8 @@ void SDLAudioContext::InitAudio(Napi::Env env) {
         return;
     }
     
-    if (SDL_WasInit(SDL_INIT_AUDIO) == 0 && SDL_Init(SDL_INIT_AUDIO) != 0) {
-        throw Error::New(env, Format() << "Cannot initialize audio. SDL_Init(SDL_INIT_AUDIO): " << SDL_GetError());
+    if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
+        throw Error::New(env, "SDL Audio must be initialized before creating or attaching an SDLAudioContext.");
     }
 
     SDL_AudioSpec desired;
@@ -102,6 +104,21 @@ Value SDLAudioContext::CreateAudioSample(const CallbackInfo& info) {
     }
 
     return Buffer<Uint8>::New(env, buffer, bufferLen);
+}
+
+Value SDLAudioContext::GetAudioSampleFormats(const CallbackInfo& info) {
+    auto env = info.Env();
+    auto formats = Array::New(env);
+
+    if (this->isOpen) {
+        formats[formats.Length()] = String::New(env, "wave");
+    }
+
+    return formats;
+}
+
+Value SDLAudioContext::GetAudioStreamFormats(const CallbackInfo& info) {
+    return Array::New(info.Env());
 }
 
 void SDLAudioContext::DestroyAudioSample(const CallbackInfo& info) {

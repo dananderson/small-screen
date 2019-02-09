@@ -21,6 +21,14 @@ inline int clamp(float i) {
     return floor(i + 0.5f);
 }
 
+inline bool EndsWith(std::string const & value, std::string const & ending) {
+    if (ending.size() > value.size()) {
+        return false;
+    }
+    
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
 void ReadBytesFromFile(const std::string filename, std::vector<unsigned char>& target);
 
 #endif
