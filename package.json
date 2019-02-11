@@ -1,7 +1,7 @@
 {
   "name": "small-screen",
   "description": "Experimental toolkit for building React apps for Raspberry Pi.",
-  "version": "0.0.60",
+  "version": "0.0.61",
   "main": "index.js",
   "license": "MIT",
   "repository": {
@@ -25,11 +25,11 @@
     "node-fetch": "^2.3.0",
     "prop-types": "^15.6.2",
     "queue-fifo": "^0.2.5",
+    "react-reconciler": "0.18.0",
     "yoga-layout": "^1.9.3"
   },
   "peerDependencies": {
-    "react": "16.7.0",
-    "react-reconciler": "0.18.0"
+    "react": "^16.7.0"
   },
   "devDependencies": {
     "babel-core": "^6.26.3",
@@ -45,7 +45,6 @@
     "eslint": "^5.4.0",
     "mocha": "^5.2.0",
     "react": "16.7.0",
-    "react-reconciler": "0.18.0",
     "rollup": "0.58.2",
     "rollup-plugin-babel": "3.0.4",
     "rollup-plugin-babel-minify": "6.0.0",
