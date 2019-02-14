@@ -12,7 +12,7 @@ import { FocusGroup } from '../../../../lib/Public/Components/FocusGroup'
 describe('FocusGroup', () => {
   describe('create', () => {
     it('should create a FocusGroup component with vertical navigation', () => {
-      const renderer = TestRenderer.create(<FocusGroup/>)
+      const renderer = TestRenderer.create(<FocusGroup />)
       const tree = renderer.toTree()
 
       assert.equal(tree.type, FocusGroup)
@@ -20,7 +20,7 @@ describe('FocusGroup', () => {
       assert.equal(tree.rendered.type, 'box')
     })
     it('should create a FocusGroup component with horizontal navigation', () => {
-      const renderer = TestRenderer.create(<FocusGroup navigation="horizontal"/>)
+      const renderer = TestRenderer.create(<FocusGroup navigation='horizontal' />)
       const tree = renderer.toTree()
 
       assert.equal(tree.type, FocusGroup)
