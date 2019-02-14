@@ -45,6 +45,7 @@
     "eslint": "^5.4.0",
     "mocha": "^5.2.0",
     "react": "16.7.0",
+    "react-test-renderer": "^16.7.0",
     "rollup": "0.58.2",
     "rollup-plugin-babel": "3.0.4",
     "rollup-plugin-babel-minify": "6.0.0",
