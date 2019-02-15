@@ -214,7 +214,7 @@ class Demo extends React.Component {
   }
 
   componentDidMount () {
-    Application.findView(this).getViewById('tab1').requestFocus()
+    Application.getViewById('tab1').requestFocus()
   }
 }
 
