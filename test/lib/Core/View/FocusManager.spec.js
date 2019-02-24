@@ -13,6 +13,7 @@ import { KeyEvent } from '../../../../lib/Core/Event/KeyEvent'
 import { Direction } from '../../../../lib/Core/Views/Direction'
 import { StandardKey } from '../../../../lib/Core/Input/StandardKey'
 import { StandardMapping } from '../../../../lib/Core/Input/StandardMapping'
+import { ResourceManager } from '../../../../lib/Core/Resource/ResourceManager'
 
 describe('FocusManager', () => {
   let app
@@ -82,7 +83,8 @@ describe('FocusManager', () => {
   beforeEach(() => {
     app = {
       focus: new FocusManager(),
-      layout: sinon.createStubInstance(LayoutManager)
+      layout: sinon.createStubInstance(LayoutManager),
+      resource: sinon.createStubInstance(ResourceManager)
     }
   })
   afterEach(() => {
