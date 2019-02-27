@@ -64,7 +64,7 @@
     "binding.gyp"
   ],
   "scripts": {
-    "bundle": "rollup -c",
+    "bundle": "rollup -c && node scripts/gen-exports.js",
     "clean": "del-cli dist build",
     "lint": "standard",
     "test": "standard && mocha --require @babel/register --reporter spec \"test/**/*.spec.js\""
