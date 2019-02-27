@@ -4,7 +4,7 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { main, Style, StyleSheet, FocusGroup, Application, Input } from '../lib/export'
 
 const styles = StyleSheet({
@@ -93,26 +93,20 @@ const styles = StyleSheet({
   }
 })
 
-class Tab extends React.Component {
-  state = {}
+const Tab = (props) => {
+  const [ focused, setFocused ] = useState(false)
 
-  render () {
-    return (
-      <box id={this.props.id} focusable style={styles.tab} onFocus={this.onFocus.bind(this)} onBlur={this.onBlur.bind(this)}>
-        <img src={'tab.svg'} style={styles.tabBackground} visible={!!this.state.focused} />
-        <text style={this.state.focused ? styles.tabTextFocus : styles.tabText}>{this.props.children}</text>
-      </box>
-    )
+  const onFocus = () => {
+    setFocused(true)
+    props.onTabFocus && props.onTabFocus()
   }
 
-  onFocus () {
-    this.setState({ focused: true })
-    this.props.onTabFocus && this.props.onTabFocus()
-  }
-
-  onBlur () {
-    this.setState({ focused: false })
-  }
+  return (
+    <box id={props.id} focusable style={styles.tab} onFocus={onFocus} onBlur={() => setFocused(false)}>
+      <img src={'tab.svg'} style={styles.tabBackground} visible={focused} />
+      <text style={focused ? styles.tabTextFocus : styles.tabText}>{props.children}</text>
+    </box>
+  )
 }
 
 const ImagePage = (props) => {
@@ -188,34 +182,29 @@ const GamepadPage = (props) => {
   return (<box style={{ flexDirection: 'column' }}>{list}</box>)
 }
 
-class Demo extends React.Component {
-  state = {
-    page: ImagePage
-  }
+const Demo = () => {
+  const [ page, setPage ] = useState({ component: ImagePage })
+  const Page = page.component
 
-  render () {
-    const Page = this.state.page
+  useEffect(() => {
+    Application.getViewById('tab1').requestFocus()
+  }, [])
 
-    return (
-      <box style={styles.background}>
-        <box style={styles.tabControl}>
-          <FocusGroup navigation='horizontal' style={styles.tabs}>
-            <Tab id='tab1' onTabFocus={() => this.setState({ page: ImagePage })}>Image</Tab>
-            <Tab id='tab2' onTabFocus={() => this.setState({ page: TextPage })}>Text</Tab>
-            <Tab id='tab3' onTabFocus={() => this.setState({ page: GamepadPage })}>Gamepads</Tab>
-          </FocusGroup>
-          <box style={styles.page}>
-            <img style={styles.tabBackground} src={'page.svg'} />
-            <Page />
-          </box>
+  return (
+    <box style={styles.background}>
+      <box style={styles.tabControl}>
+        <FocusGroup navigation='horizontal' style={styles.tabs}>
+          <Tab id='tab1' onTabFocus={() => setPage({ component: ImagePage })}>Image</Tab>
+          <Tab id='tab2' onTabFocus={() => setPage({ component: TextPage })}>Text</Tab>
+          <Tab id='tab3' onTabFocus={() => setPage({ component: GamepadPage })}>Gamepads</Tab>
+        </FocusGroup>
+        <box style={styles.page}>
+          <img style={styles.tabBackground} src={'page.svg'} />
+          <Page />
         </box>
       </box>
-    )
-  }
-
-  componentDidMount () {
-    Application.getViewById('tab1').requestFocus()
-  }
+    </box>
+  )
 }
 
 const page = `<svg viewBox="0 0 32 32">
@@ -231,6 +220,7 @@ main({
   width: 1280,
   height: 720,
   fullscreen: false,
+  resourcePath: 'example',
   app: <Demo />,
   start: true,
   title: 'Example App',
