@@ -40,7 +40,7 @@ const babelOpts = {
 }
 
 babelOpts.presets.forEach(preset => {
-  if (Array.isArray(preset) && preset.length >= 2 && preset[0] === 'env') {
+  if (Array.isArray(preset) && preset.length >= 2 && preset[0] === '@babel/preset-env') {
     preset[1].modules = false
   }
 })
@@ -67,14 +67,17 @@ export default [
     input,
     output: {
       format: 'cjs',
-      file: file.replace('%env', 'production')
+      file: file.replace('%env', 'production'),
+      sourcemap: true
     },
     external,
     plugins: [
       resolve(resolveOpts),
-      babel({ ...babelOpts, comments: false }),
+      babel({ ...babelOpts }),
       commonjs(commonjsOpts),
-      minify()
+      minify({
+        comments: false
+      })
     ]
   }
 ]
