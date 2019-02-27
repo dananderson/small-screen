@@ -9,7 +9,7 @@
 import babel from 'rollup-plugin-babel'
 import resolve from 'rollup-plugin-node-resolve'
 import commonjs from 'rollup-plugin-commonjs'
-import minify from 'rollup-plugin-babel-minify'
+import { terser } from 'rollup-plugin-terser'
 import { builtinModules } from 'module'
 import fs from 'fs'
 import path from 'path'
@@ -75,9 +75,21 @@ export default [
       resolve(resolveOpts),
       babel({ ...babelOpts }),
       commonjs(commonjsOpts),
-      minify({
-        comments: false,
-        mangle: { topLevel: true }
+      terser({
+        mangle: {
+          module: true
+        },
+        compress: {
+          ecma: 6,
+          passes: 3,
+          module: true,
+          unsafe: true,
+          unsafe_arrows: true
+        },
+        output: {
+          ecma: 6,
+          quote_style: 1
+        }
       })
     ]
   }
