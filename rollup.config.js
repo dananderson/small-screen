@@ -76,7 +76,8 @@ export default [
       babel({ ...babelOpts }),
       commonjs(commonjsOpts),
       minify({
-        comments: false
+        comments: false,
+        mangle: { topLevel: true }
       })
     ]
   }

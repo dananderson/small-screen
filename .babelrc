@@ -4,6 +4,6 @@
     [ "@babel/preset-env", { "targets": { "node": "10" } } ]
   ],
   "plugins": [
-    [ "@babel/plugin-proposal-class-properties", { "spec": false } ]
+    [ "@babel/plugin-proposal-class-properties", { "loose": true } ]
   ]
 }
