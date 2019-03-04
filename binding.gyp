@@ -43,10 +43,10 @@
       "sources": [
         "src/common/Util.cc",
         "src/common/AsyncTaskQueue.cc",
+        "src/common/Font.cc",
+        "src/common/FontSample.cc",
+        "src/common/TextLayout.cc",
         "src/small-screen-lib/CapInsets.cc",
-        "src/small-screen-lib/Font.cc",
-        "src/small-screen-lib/FontSample.cc",
-        "src/small-screen-lib/TextLayout.cc",
         "src/small-screen-lib/nanosvg.cc",
         "src/small-screen-lib/stb.cc",
         "src/small-screen-lib/StbFont.cc",
@@ -89,6 +89,9 @@
       ],
       "sources": [
         "src/common/Util.cc",
+        "src/common/Font.cc",
+        "src/common/FontSample.cc",
+        "src/common/TextLayout.cc",
         "src/small-screen-sdl/SDLClient.cc",
         "src/small-screen-sdl/SDLRenderingContext.cc",
         "src/small-screen-sdl/SDLAudioContext.cc",
