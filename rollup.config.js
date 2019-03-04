@@ -77,11 +77,12 @@ export default [
       commonjs(commonjsOpts),
       terser({
         mangle: {
-          module: true
+          module: true,
+          reserved: [ 'bindings' ]
         },
         compress: {
           ecma: 6,
-          passes: 3,
+          passes: 1,
           module: true,
           unsafe: true,
           unsafe_arrows: true
