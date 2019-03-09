@@ -49,6 +49,10 @@ const commonjsOpts = {
   exclude: ['/**/node_modules/**']
 }
 
+const onwarn = warning => {
+  throw new Error(warning.message)
+}
+
 export default [
   {
     input,
@@ -61,7 +65,8 @@ export default [
       resolve(resolveOpts),
       babel({ ...babelOpts, comments: true }),
       commonjs(commonjsOpts)
-    ]
+    ],
+    onwarn
   },
   {
     input,
@@ -92,6 +97,7 @@ export default [
           quote_style: 1
         }
       })
-    ]
+    ],
+    onwarn
   }
 ]

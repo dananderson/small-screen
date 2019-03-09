@@ -23,11 +23,6 @@ std::vector<int>& GetBasicLatinBlock() {
         for (int i = 0x20; i <= 0x7F; i++) {
             sBasicLatinBlock.push_back(i);
         }
-
-        // fallback
-        sBasicLatinBlock.push_back(0xFFFD);
-        // ellipsis
-        sBasicLatinBlock.push_back(0x2026);
     }
 
     return sBasicLatinBlock;

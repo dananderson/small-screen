@@ -59,55 +59,33 @@ struct Resolution {
     }
 };
 
-void JS_Attach(const CallbackInfo& info) {
-    if (SDL_WasInit(SDL_INIT_VIDEO) == 0) {
-        if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_VIDEO): " << SDL_GetError());
-        }
+void Init() {
+    SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+
+    if (SDL_WasInit(SDL_INIT_VIDEO) != 0) {
+        SDL_SetHint("SDL_HINT_RENDER_SCALE_QUALITY", "linear");
     }
 
-    if (SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0) {
-        if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
-            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER): " << SDL_GetError());
-        }
-
+    if (SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
         SDL_GameControllerEventState(SDL_IGNORE);
         AddGameControllerMappings();
     }
+}
 
-    // Optional
-    if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
-        SDL_Init(SDL_INIT_AUDIO);
+void JS_Attach(const CallbackInfo& info) {
+    Init();
+
+    if (SDL_WasInit(SDL_INIT_VIDEO) == 0) {
+        throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_VIDEO): " << SDL_GetError());
+    }
+
+    if (SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0) {
+        throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER): " << SDL_GetError());
     }
 }
 
 void JS_Detach(const CallbackInfo& info) {
     SDL_Quit();
-}
-
-void JS_Init(const CallbackInfo& info) {
-    auto options = info[0].As<Object>();
-
-    if (SDL_WasInit(SDL_INIT_VIDEO) == 0 && options.Has("video") && options.Get("video").ToBoolean().Value()) {
-        if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_VIDEO): " << SDL_GetError());
-        }
-    }
-
-    if (SDL_WasInit(SDL_INIT_AUDIO) == 0 && options.Has("audio") && options.Get("audio").ToBoolean().Value()) {
-        if (SDL_Init(SDL_INIT_AUDIO) != 0) {
-            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_AUDIO): " << SDL_GetError());
-        }
-    }
-
-    if (SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0 && options.Has("gamepad") && options.Get("gamepad").ToBoolean().Value()) {
-        if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
-            throw Error::New(info.Env(), Format() << "SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER): " << SDL_GetError());
-        }
-
-        SDL_GameControllerEventState(SDL_IGNORE);
-        AddGameControllerMappings();
-    }
 }
 
 Object GetCapabilities(Napi::Env env) {
@@ -409,12 +387,7 @@ std::string GetSDLVersion() {
 }
 
 Object SDLBindingsInit(Env env, Object exports) {
-    SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-
-    if (SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
-        SDL_GameControllerEventState(SDL_IGNORE);
-        AddGameControllerMappings();
-    }
+    Init();
 
     exports["attach"] = Function::New(env, JS_Attach, "attach");
     exports["detach"] = Function::New(env, JS_Detach, "detach");

@@ -1,7 +1,7 @@
 {
   "name": "small-screen",
   "description": "Experimental toolkit for building React apps for Raspberry Pi.",
-  "version": "0.0.70",
+  "version": "0.0.72",
   "main": "index.js",
   "license": "MIT",
   "repository": {
