@@ -66,13 +66,20 @@ void JS_ImageRelease(const CallbackInfo& info) {
     }
 }
 
+
+
+void JS_ImageJoinThreadPool(const CallbackInfo& info) {
+    AsyncTaskQueue::Close();
+}
+
 Object Init(Env env, Object exports) {
     TextLayout::Init(env, exports);
     CapInsets::Init(env, exports);
     FontStore::Init(env, exports);
 
-    exports["setThreadPoolSize"] = Function::New(env, JS_SetThreadPoolSize, "setThreadPoolSize");
-    exports["getThreadPoolSize"] = Function::New(env, JS_GetThreadPoolSize, "getThreadPoolSize");
+    exports["ImageSetThreadPoolSize"] = Function::New(env, JS_SetThreadPoolSize, "ImageSetThreadPoolSize");
+    exports["ImageGetThreadPoolSize"] = Function::New(env, JS_GetThreadPoolSize, "ImageGetThreadPoolSize");
+    exports["ImageJoinThreadPool"] = Function::New(env, JS_ImageJoinThreadPool, "ImageJoinThreadPool");
 
     exports["loadImage"] = Function::New(env, JS_ImageLoad, "loadImage");
     exports["releaseImage"] = Function::New(env, JS_ImageRelease, "releaseImage");
