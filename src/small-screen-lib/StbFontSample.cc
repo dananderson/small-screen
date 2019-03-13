@@ -44,6 +44,8 @@ std::vector<int>& GetSpecialBlock() {
         sSpecialBlock.push_back(0xFFFD);
         // ellipsis
         sSpecialBlock.push_back(0x2026);
+        // nbsp
+        sSpecialBlock.push_back(0x00A0);
     }
 
     return sSpecialBlock;
