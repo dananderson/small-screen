@@ -50,14 +50,16 @@ void JS_ImageLoad(const CallbackInfo& info) {
     auto height = options.Has("height") ? options.Get("height").As<Number>().Int32Value(): 0;
     auto format = options.Has("format") ? Cast(options.Get("format").As<Number>().Int32Value()): TEXTURE_FORMAT_RGBA;
     auto sourceType = options.Has("type") ? options.Get("type").As<String>().Utf8Value() : std::string();
-
+    auto basename = options.Has("basename") ? options.Get("basename").ToBoolean() : false;
+    
     AsyncTaskQueue::Enqueue(std::make_shared<LoadImageAsyncTask>(
         callback,
         source,
         sourceType,
         width,
         height,
-        format));
+        format,
+        basename));
 }
 
 void JS_ImageRelease(const CallbackInfo& info) {

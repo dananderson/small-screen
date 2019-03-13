@@ -20,7 +20,8 @@ public:
                 const std::string &sourceType,
                 int desiredWidth,
                 int desiredHeight,
-                TextureFormat desiredFormat);
+                TextureFormat desiredFormat,
+                bool basename);
 
     void Run();
     void Dispatch();
@@ -39,6 +40,7 @@ private:
     int desiredWidth;
     int desiredHeight;
     TextureFormat desiredFormat;
+    bool basename;
     Napi::Reference<Napi::Value> ref;
 
     void LoadRasterImage(unsigned char *chunk, int chunkLen);

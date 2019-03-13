@@ -16,6 +16,7 @@
 #include <nanosvg.h>
 #include <nanosvgrast.h>
 #include <stb_image.h>
+#include <dirent.h>
 #include "Util.h"
 
 using namespace Napi;
@@ -34,7 +35,8 @@ LoadImageAsyncTask::LoadImageAsyncTask(std::shared_ptr<ThreadSafeCallback> callb
             const std::string &sourceType,
             int desiredWidth,
             int desiredHeight,
-            TextureFormat desiredFormat)
+            TextureFormat desiredFormat,
+            bool basename)
      : callback(callback),
        data(nullptr),
        dataSize(0),
@@ -44,7 +46,8 @@ LoadImageAsyncTask::LoadImageAsyncTask(std::shared_ptr<ThreadSafeCallback> callb
        sourceType(sourceType),
        desiredWidth(desiredWidth),
        desiredHeight(desiredHeight),
-       desiredFormat(desiredFormat) {
+       desiredFormat(desiredFormat),
+       basename(basename) {
 
     if (source.IsBuffer()) {
         auto buffer = source.As<Buffer<unsigned char>>();
@@ -63,6 +66,26 @@ void LoadImageAsyncTask::Run() {
         // note: nanosvg modifies the char buffer during parsing.
         this->LoadSvgImage(const_cast<char *>(this->source.c_str()), this->source.size());
     } else {
+        if (this->sourceData == nullptr && this->basename) {
+            auto directory = GetDirectory(this->source);
+            auto filename = GetBasename(this->source);
+            auto search = filename.c_str();
+
+            DIR *dir;
+            struct dirent *ent;
+            if ((dir = opendir(directory.c_str())) != nullptr) {
+              while ((ent = readdir(dir)) != NULL) {
+                auto name = ent->d_name;
+
+                if (strstr(name, search) == name) {
+                    this->source = directory + "/" + std::string(name);
+                    break;
+                }
+              }
+              closedir(dir);
+            }
+        }
+
         try {
             this->LoadRasterImage(this->sourceData, this->sourceDataSize);
         } catch (std::exception e) {
@@ -146,7 +169,7 @@ void LoadImageAsyncTask::LoadSvgImage(char *chunk, int chunkLen) {
     }
 
     if (svg == nullptr) {
-        throw std::runtime_error("Failed to parse SVG.");
+        throw std::runtime_error("Failed to parse image.");
     }
 
     if ((svg->width == 0 || svg->height == 0) && (desiredWidth == 0 && desiredHeight == 0)) {

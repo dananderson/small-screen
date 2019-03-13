@@ -29,6 +29,30 @@ inline bool EndsWith(std::string const & value, std::string const & ending) {
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
+inline std::string GetDirectory(const std::string& str) {
+  std::size_t found;
+
+  found = str.find_last_of('/');
+
+  if (found == std::string::npos) {
+    return str;
+  }
+
+  return str.substr(0,found);
+}
+
+inline std::string GetBasename(const std::string& str) {
+  std::size_t found;
+
+  found = str.find_last_of('/');
+
+  if (found == std::string::npos) {
+    return str;
+  }
+
+  return str.substr(found + 1);
+}
+
 void ReadBytesFromFile(const std::string filename, std::vector<unsigned char>& target);
 
 #endif

@@ -19,6 +19,8 @@ const TEST_SVG_XML = '<svg width="400" height="110"><rect width="300" height="10
 const TEST_BAD_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQIHWPgFpUHAABuAEAHgNGQAAA'
 const TEST_BAD_SVG_XML = '<svg width="400" height="110"><rect width="300" height="100" style="fill:rgb(0,0,255);"'
 
+const TEST_ONE = 'test/resources/one'
+
 describe('Image', () => {
   let image
 
@@ -78,6 +80,14 @@ describe('Image', () => {
         .then(() => {
           assert.equal(image.width, 400)
           assert.equal(image.height, 110)
+          assert.isOk(image.buffer)
+        })
+    })
+    it('should load image file with no extension when basename is set', () => {
+      return image.load(TEST_ONE, { basename: true })
+        .then(() => {
+          assert.equal(image.width, 1)
+          assert.equal(image.height, 1)
           assert.isOk(image.buffer)
         })
     })
