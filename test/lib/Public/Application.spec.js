@@ -5,18 +5,24 @@
  */
 
 import { Application } from '../../../lib/Public/Application'
+import { testSetApplication } from '../../../lib/Public'
+import sinon from 'sinon'
+
+const listener = () => {}
 
 describe('Application', () => {
-  let listener = () => {}
+  let app
   describe('addEventListener()', () => {
     it('should add an event listener', () => {
       Application.addEventListener(Application.Events.closing, listener)
+      sinon.assert.calledWith(app.on, Application.Events.closing, listener)
     })
   })
   describe('removeEventListener()', () => {
     it('should remove an event listener', () => {
       Application.addEventListener(Application.Events.closing, listener)
       Application.removeEventListener(Application.Events.closing, listener)
+      sinon.assert.calledWith(app.off, Application.Events.closing, listener)
     })
     it('should ignore non-function listener', () => {
       Application.removeEventListener(Application.Events.closing, undefined)
@@ -25,7 +31,13 @@ describe('Application', () => {
       Application.removeEventListener(Application.Events.closing, 'garbage')
     })
   })
+  beforeEach(() => {
+    testSetApplication(app = {
+      on: sinon.spy(),
+      off: sinon.spy()
+    })
+  })
   afterEach(() => {
-    Application.removeEventListener(Application.Events.closing, listener)
+    testSetApplication()
   })
 })

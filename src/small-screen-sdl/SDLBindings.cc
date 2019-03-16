@@ -88,7 +88,8 @@ void JS_Detach(const CallbackInfo& info) {
     SDL_Quit();
 }
 
-Object GetCapabilities(Napi::Env env) {
+Object JS_GetCapabilities(const CallbackInfo& info) {
+    auto env = info.Env();
     auto caps = Object::New(env);
 
     caps["hasGraphics"] = SDL_WasInit(SDL_INIT_VIDEO) != 0;
@@ -387,11 +388,9 @@ std::string GetSDLVersion() {
 }
 
 Object SDLBindingsInit(Env env, Object exports) {
-    Init();
-
     exports["attach"] = Function::New(env, JS_Attach, "attach");
     exports["detach"] = Function::New(env, JS_Detach, "detach");
-    exports["capabilities"] = GetCapabilities(env);
+    exports["capabilities"] = Function::New(env, JS_GetCapabilities, "capabilties");
     exports["version"] = String::New(env, GetSDLVersion());
     exports["eventSize"] = Number::New(env, sizeof(SDL_Event));
 

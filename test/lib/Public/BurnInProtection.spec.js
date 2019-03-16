@@ -6,6 +6,8 @@
 
 import { assert } from 'chai'
 import { BurnInProtection } from '../../../lib/Public/BurnInProtection'
+import { testSetApplication } from '../../../lib/Public'
+import sinon from 'sinon'
 
 const DEFAULT_TIMEOUT = 15 * 60
 const TIMEOUT = 20 * 60
@@ -68,9 +70,16 @@ describe('BurnInProtection', () => {
       assert.throws(() => BurnInProtection.setBlackoutOpacity('garbage'))
     })
   })
+  beforeEach(() => {
+    testSetApplication({
+      on: sinon.spy(),
+      off: sinon.spy()
+    })
+  })
   afterEach(() => {
     BurnInProtection.setEnabled(false)
     BurnInProtection.setInactivityTimeout()
     BurnInProtection.setBlackoutOpacity()
+    testSetApplication()
   })
 })
