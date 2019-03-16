@@ -90,7 +90,9 @@ export default [
           passes: 1,
           module: true,
           unsafe: true,
-          unsafe_arrows: true
+          unsafe_arrows: true,
+          reduce_funcs: false,
+          inline: false
         },
         output: {
           ecma: 6,
