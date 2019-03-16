@@ -88,15 +88,16 @@ export default [
         compress: {
           ecma: 6,
           passes: 1,
+          collapse_vars: false,
           module: true,
           unsafe: true,
-          unsafe_arrows: true,
           reduce_funcs: false,
           inline: false
         },
         output: {
           ecma: 6,
-          quote_style: 1
+          quote_style: 1,
+          semicolons: false
         }
       })
     ],
