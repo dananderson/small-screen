@@ -1466,13 +1466,6 @@ dashdash@^1.12.0:
   dependencies:
     assert-plus "^1.0.0"
 
-dbly-linked-list@0.2.0:
-  version "0.2.0"
-  resolved "http://192.168.1.12:4873/dbly-linked-list/-/dbly-linked-list-0.2.0.tgz#d30f5225dc1ce72220d7931489b0c5703b1aa8aa"
-  integrity sha512-Ool7y15f6JRDs0YKx7Dh9uiTb1jS1SZLNdT3Y2q16DlaEghXbMsmODS/XittjR2xztt1gJUpz7jVxpqAPF8VGg==
-  dependencies:
-    lodash.isequal "^4.5.0"
-
 debug-log@^1.0.0:
   version "1.0.1"
   resolved "http://192.168.1.12:4873/debug-log/-/debug-log-1.0.1.tgz#2307632d4c04382b8df8a32f70b895046d52745f"
@@ -3127,11 +3120,6 @@ lodash.get@^4.4.2:
   resolved "http://192.168.1.12:4873/lodash.get/-/lodash.get-4.4.2.tgz#2d177f652fa31e939b4438d5341499dfa3825e99"
   integrity sha1-LRd/ZS+jHpObRDjVNBSZ36OCXpk=
 
-lodash.isequal@^4.5.0:
-  version "4.5.0"
-  resolved "http://192.168.1.12:4873/lodash.isequal/-/lodash.isequal-4.5.0.tgz#415c4478f2bcc30120c22ce10ed3226f7d3e18e0"
-  integrity sha1-QVxEePK8wwEgwizhDtMib30+GOA=
-
 lodash@^4.17.10, lodash@^4.17.11, lodash@^4.17.4, lodash@^4.17.5, lodash@^4.3.0:
   version "4.17.11"
   resolved "http://192.168.1.12:4873/lodash/-/lodash-4.17.11.tgz#b39ea6229ef607ecd89e2c8df12536891cac9b8d"
@@ -3940,13 +3928,6 @@ qs@~6.5.2:
   version "6.5.2"
   resolved "http://192.168.1.12:4873/qs/-/qs-6.5.2.tgz#cb3ae806e8740444584ef154ce8ee98d403f3e36"
   integrity sha512-N5ZAX4/LxJmF+7wN74pUD6qAh9/wnvdQcjq9TZjevvXzSUo7bfmw91saqMjzGS2xq91/odN2dW/WOl7qQHNDGA==
-
-queue-fifo@^0.2.5:
-  version "0.2.5"
-  resolved "http://192.168.1.12:4873/queue-fifo/-/queue-fifo-0.2.5.tgz#b3f0c626dea8b505b7e816aa888c1860f9433e9c"
-  integrity sha512-GrHy3RDy0BOEVjelr+htts/QJyZAJr+7m4TisCA+RlUSsegQT6EGOf+NyxLDhSRflFI5vq3aADFOR/tNZCasxg==
-  dependencies:
-    dbly-linked-list "0.2.0"
 
 rc@^1.0.1, rc@^1.1.6:
   version "1.2.8"

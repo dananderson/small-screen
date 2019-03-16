@@ -24,7 +24,6 @@
     "node-addon-api": "^1.6.2",
     "node-fetch": "^2.3.0",
     "prop-types": "^15.7.2",
-    "queue-fifo": "^0.2.5",
     "react-reconciler": "0.20.1",
     "scheduler": "^0.13.3",
     "yoga-layout": "^1.9.3"
