@@ -9,6 +9,6 @@ console.log = () => {}
 const fs = require('fs')
 const path = require('path')
 const smallScreen = require(path.join(__dirname, '..'))
-const exportsPath = path.join(__dirname, '..', 'dist/exports.js')
+const exportsPath = path.join(__dirname, '..', 'cjs/exports.js')
 
 fs.writeFileSync(exportsPath, 'module.exports = ' + JSON.stringify(Object.keys(smallScreen)))

@@ -7,7 +7,7 @@
 'use strict'
 
 if (process.env.NODE_ENV === 'production') {
-  module.exports = require('./dist/small-screen.production.js')
+  module.exports = require('./cjs/small-screen.production.js')
 } else {
-  module.exports = require('./dist/small-screen.development.js')
+  module.exports = require('./cjs/small-screen.development.js')
 }

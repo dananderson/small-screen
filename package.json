@@ -57,21 +57,21 @@
     "yoga-layout:platform": "standalone"
   },
   "files": [
-    "dist/",
+    "cjs/",
     "src/",
     "deps/",
     "binding.gyp"
   ],
   "scripts": {
     "bundle": "rollup -c && node scripts/gen-exports.js",
-    "clean": "del-cli dist build",
+    "clean": "del-cli cjs build",
     "lint": "standard",
     "test": "standard && mocha --require @babel/register --reporter spec \"test/**/*.spec.js\""
   },
   "standard": {
     "ignore": [
       "deps/",
-      "dist/",
+      "cjs/",
       "node_modules/",
       "src/",
       "build/",
