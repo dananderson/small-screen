@@ -37,10 +37,11 @@ private:
     SDL_Renderer *renderer;
     int wx;
     int wy;
-    int opacity;
-    unsigned int color, backgroundColor, borderColor, tintColor;
+    uint8_t opacity;
+    bool hasColorAlpha, hasBackgroundColorAlpha, hasBorderColorAlpha, hasTintColorAlpha;
+    uint32_t color, backgroundColor, borderColor, tintColor;
     std::vector<SDL_Rect> clipRectStack;
-    std::vector<int> opacityStack;
+    std::vector<uint8_t> opacityStack;
     std::vector<int> positionStack;
 };
 
