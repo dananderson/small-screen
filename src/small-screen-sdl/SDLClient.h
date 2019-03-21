@@ -9,6 +9,10 @@
 
 #include <napi.h>
 #include <SDL.h>
+#include <map>
+#include "TextureFormat.h"
+#include "FontSample.h"
+#include "RoundedRectangleEffect.h"
 
 class SDLClient : public Napi::ObjectWrap<SDLClient> {
 private:
@@ -20,7 +24,10 @@ private:
     int screenWidth;
     int screenHeight;
     bool isFullscreen;
-    
+    TextureFormat textureFormat;
+    uint32_t texturePixelFormat;
+    std::map<RoundedRectangleEffect, SDL_Texture *> roundedRectangleEffectTextures;
+
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
 
@@ -36,6 +43,14 @@ public:
     Napi::Value GetScreenWidth(const Napi::CallbackInfo& info);
     Napi::Value GetScreenHeight(const Napi::CallbackInfo& info);
     Napi::Value IsFullscreen(const Napi::CallbackInfo& info);
+    Napi::Value CreateTexture(const Napi::CallbackInfo& info);
+    Napi::Value CreateFontTexture(const Napi::CallbackInfo& info);
+    void DestroyTexture(const Napi::CallbackInfo& info);
+
+    SDL_Texture *CreateTexture(int width, int height, unsigned char *source, int len);
+    SDL_Texture *CreateFontTexture(FontSample *sample);
+    SDL_Texture *GetEffectTexture(const RoundedRectangleEffect &spec);
+    void DestroyTexture(SDL_Texture *texture);
 
     SDL_Window *GetWindow() {
         return this->window;
@@ -43,6 +58,14 @@ public:
 
     SDL_Renderer *GetRenderer() {
         return this->renderer;
+    }
+
+    TextureFormat GetTextureFormat() {
+        return this->textureFormat;
+    }
+
+    uint32_t GetTexturePixelFormat() {
+        return this->texturePixelFormat;
     }
 };
 

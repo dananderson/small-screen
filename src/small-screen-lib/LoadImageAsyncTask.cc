@@ -23,9 +23,6 @@ using namespace Napi;
 
 #define NUM_IMAGE_COMPONENTS 4
 
-void ToFormatLE(unsigned char *bytes, int len, TextureFormat format);
-void ToFormatBE(unsigned char *bytes, int len, TextureFormat format);
-
 inline float ScaleFactor(const int source, const int dest) {
     return 1.f + ((dest - source) / (float)source);
 }
@@ -93,11 +90,7 @@ void LoadImageAsyncTask::Run() {
         }
     }
 
-    if (IsBigEndian()) {
-       ToFormatBE(this->data, this->dataSize, this->desiredFormat);
-    } else {
-       ToFormatLE(this->data, this->dataSize, this->desiredFormat);
-    }
+    ConvertToFormat(this->data, this->dataSize, this->desiredFormat);
 }
 
 void LoadImageAsyncTask::Dispatch() {
@@ -222,97 +215,4 @@ void LoadImageAsyncTask::LoadSvgImage(char *chunk, int chunkLen) {
 
     nsvgDeleteRasterizer(rasterizer);
     nsvgDelete(svg);
-}
-
-inline void swap(unsigned char *bytes, int a, int b) {
-    unsigned char t = bytes[a];
-
-    bytes[a] = bytes[b];
-    bytes[b] = t;
-}
-
-#define R 0
-#define G 1
-#define B 2
-#define A 3
-
-void ToFormatLE(unsigned char *bytes, int len, TextureFormat format) {
-    auto i = 0;
-    unsigned char r, g, b, a;
-
-    switch(format) {
-        case TEXTURE_FORMAT_ARGB:
-            while (i < len) {
-                swap(bytes, i + R, i + B);
-                i += NUM_IMAGE_COMPONENTS;
-            }
-            break;
-        case TEXTURE_FORMAT_BGRA:
-            while (i < len) {
-                r = bytes[i + R];
-                g = bytes[i + G];
-                b = bytes[i + B];
-                a = bytes[i + A];
-
-                bytes[i    ] = a;
-                bytes[i + 1] = r;
-                bytes[i + 2] = g;
-                bytes[i + 3] = b;
-
-                i += NUM_IMAGE_COMPONENTS;
-            }
-            break;
-        case TEXTURE_FORMAT_RGBA:
-            while (i < len) {
-                swap(bytes, i + R, i + A);
-                swap(bytes, i + G, i + B);
-
-                i += NUM_IMAGE_COMPONENTS;
-            }
-            break;
-        default:
-            // TEXTURE_FORMAT_ABGR - no op in LE
-            break;
-    }
-
-}
-
-void ToFormatBE(unsigned char *bytes, int len, TextureFormat format) {
-    auto i = 0;
-    unsigned char r, g, b, a;
-
-    switch(format) {
-        case TEXTURE_FORMAT_ABGR:
-            while (i < len) {
-                swap(bytes, i + A, i + R);
-                swap(bytes, i + G, i + B);
-                i += NUM_IMAGE_COMPONENTS;
-            }
-            break;
-        case TEXTURE_FORMAT_ARGB:
-            while (i < len) {
-                r = bytes[i + R];
-                g = bytes[i + G];
-                b = bytes[i + B];
-                a = bytes[i + A];
-
-                bytes[i    ] = a;
-                bytes[i + 1] = r;
-                bytes[i + 2] = g;
-                bytes[i + 3] = b;
-
-                i += NUM_IMAGE_COMPONENTS;
-            }
-            break;
-        case TEXTURE_FORMAT_BGRA:
-            while (i < len) {
-                swap(bytes, i + R, i + B);
-                i += NUM_IMAGE_COMPONENTS;
-            }
-            break;
-        case TEXTURE_FORMAT_RGBA:
-        default:
-            // TEXTURE_FORMAT_RGBA - noop in BE
-            break;
-    }
 }

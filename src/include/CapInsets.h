@@ -8,32 +8,33 @@
 #define CAPINSETS_H
 
 #include "napi.h"
+#include "Rectangle.h"
 #include <cstdint>
 
 class CapInsets : public Napi::ObjectWrap<CapInsets> {
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
 
+    CapInsets(int32_t top, int32_t right, int32_t bottom, int32_t left);
     CapInsets(const Napi::CallbackInfo& info);
-    ~CapInsets() {}
+    virtual ~CapInsets() {}
 
-    Napi::Value Left(const Napi::CallbackInfo& info) { return Napi::Number::New(info.Env(), this->left); }
-    Napi::Value Top(const Napi::CallbackInfo& info) { return Napi::Number::New(info.Env(), this->top); }
-    Napi::Value Right(const Napi::CallbackInfo& info) { return Napi::Number::New(info.Env(), this->right); }
-    Napi::Value Bottom(const Napi::CallbackInfo& info) { return Napi::Number::New(info.Env(), this->bottom); }
+    Napi::Value Left(const Napi::CallbackInfo& info) { return Napi::Number::New(info.Env(), this->rect.left); }
+    Napi::Value Top(const Napi::CallbackInfo& info) { return Napi::Number::New(info.Env(), this->rect.top); }
+    Napi::Value Right(const Napi::CallbackInfo& info) { return Napi::Number::New(info.Env(), this->rect.right); }
+    Napi::Value Bottom(const Napi::CallbackInfo& info) { return Napi::Number::New(info.Env(), this->rect.bottom); }
 
-    int32_t GetLeft() const { return this->left; }
-    int32_t GetTop() const { return this->top; }
-    int32_t GetRight() const { return this->right; }
-    int32_t GetBottom() const { return this->bottom; }
+    int32_t GetLeft() const { return this->rect.left; }
+    int32_t GetTop() const { return this->rect.top; }
+    int32_t GetRight() const { return this->rect.right; }
+    int32_t GetBottom() const { return this->rect.bottom; }
+    const Rectangle &GetRectangle() const { return this->rect; }
+
 
 private:
     static Napi::FunctionReference constructor;
 
-    int32_t left;
-    int32_t top;
-    int32_t right;
-    int32_t bottom;
+    Rectangle rect;
 };
 
 #endif

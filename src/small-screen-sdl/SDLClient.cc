@@ -6,10 +6,19 @@
 
 #include "SDLClient.h"
 #include "Format.h"
+#include "Util.h"
+#include <cstdio>
+#include <sstream>
+#include <nanosvg.h>
+#include <nanosvgrast.h>
 
 using namespace Napi;
 
 FunctionReference SDLClient::constructor;
+static std::vector<unsigned char> sEffectScratch;
+
+char *FormatArc(char *str, int len, const char *arc, int radius);
+NSVGimage *CreateRoundedRectangleSVG(const RoundedRectangleEffect &spec);
 
 SDLClient::SDLClient(const CallbackInfo& info) : ObjectWrap<SDLClient>(info) {
     auto env = info.Env();
@@ -24,6 +33,9 @@ SDLClient::SDLClient(const CallbackInfo& info) : ObjectWrap<SDLClient>(info) {
     auto screenHeight = info[3].As<Number>().Uint32Value();
     auto fullscreen = info[4].As<Boolean>().Value();
     auto vsync = info[5].As<Boolean>().Value();
+
+    this->textureFormat = Cast(info[6].As<Number>().Int32Value());
+    this->texturePixelFormat = info[7].As<Number>().Uint32Value();
 
     Uint32 windowFlags;
     int x;
@@ -80,6 +92,9 @@ Object SDLClient::Init(Napi::Env env, Object exports) {
         InstanceMethod("getScreenWidth", &SDLClient::GetScreenWidth),
         InstanceMethod("getScreenHeight", &SDLClient::GetScreenHeight),
         InstanceMethod("isFullscreen", &SDLClient::IsFullscreen),
+        InstanceMethod("createTexture", &SDLClient::CreateTexture),
+        InstanceMethod("createFontTexture", &SDLClient::CreateFontTexture),
+        InstanceMethod("destroyTexture", &SDLClient::DestroyTexture),
     });
 
     constructor = Persistent(func);
@@ -97,16 +112,21 @@ void SDLClient::Present(const CallbackInfo& info) {
 }
 
 void SDLClient::Destroy(const CallbackInfo& info) {
+    if (this->renderer) {
+        for(auto & entry : this->roundedRectangleEffectTextures) {
+            this->DestroyTexture(entry.second);
+        }
+
+        SDL_DestroyRenderer(this->renderer);
+        this->renderer = nullptr;
+    }
+
     if (this->window) {
         SDL_DestroyWindow(this->window);
         this->window = nullptr;
     }
 
-    if (this->renderer) {
-        SDL_DestroyRenderer(this->renderer);
-        this->renderer = nullptr;
-    }
-
+    this->roundedRectangleEffectTextures.clear();
     this->width = this->height = 0;
     this->isFullscreen = false;
 }
@@ -145,4 +165,264 @@ Value SDLClient::GetScreenHeight(const CallbackInfo& info) {
 
 Value SDLClient::IsFullscreen(const CallbackInfo& info) {
     return Boolean::New(info.Env(), this->isFullscreen);
+}
+
+Value SDLClient::CreateTexture(const CallbackInfo& info) {
+    auto env = info.Env();
+    auto width = info[0].As<Number>().Int32Value();
+    auto height = info[1].As<Number>().Int32Value();
+    auto source = info[2].As<Buffer<Uint8>>();
+
+    auto texture = this->CreateTexture(width, height, source.Data(), source.Length());
+
+    if (texture == nullptr) {
+        throw Error::New(env, Format() << "Failed to create texture. " << SDL_GetError());
+    }
+
+    return External<SDL_Texture>::New(env, texture);
+}
+
+Value SDLClient::CreateFontTexture(const CallbackInfo& info) {
+    auto env = info.Env();
+    auto sample = info[0].As<External<FontSample>>().Data();
+
+    auto texture = this->CreateFontTexture(sample);
+
+    if (texture == nullptr) {
+        throw Error::New(env, Format() << "Failed to create font texture. " << SDL_GetError());
+    }
+
+    return External<SDL_Texture>::New(env, texture);
+}
+
+void SDLClient::DestroyTexture(const CallbackInfo& info) {
+    auto texture = info[0].IsExternal() ? info[0].As<External<SDL_Texture>>().Data() : nullptr;
+
+    this->DestroyTexture(texture);
+}
+
+SDL_Texture *SDLClient::CreateTexture(int width, int height, unsigned char *source, int len) {
+    auto texture = SDL_CreateTexture(this->renderer,
+                                     this->texturePixelFormat,
+                                     SDL_TEXTUREACCESS_STREAMING,
+                                     width,
+                                     height);
+
+    if (texture == nullptr) {
+        return nullptr;
+    }
+
+    void *pixels;
+    int pitch;
+    auto result = SDL_LockTexture(texture, nullptr, &pixels, &pitch);
+
+    if (result != 0) {
+        SDL_DestroyTexture(texture);
+        return nullptr;
+    }
+
+    int bpp = SDL_BYTESPERPIXEL(this->texturePixelFormat);
+
+    if (pitch == width * bpp) {
+        memcpy(pixels, source, bpp * width * height);
+    } else {
+        auto dest = reinterpret_cast<unsigned char *>(pixels);
+
+        for (int h = 0; h < height; h++) {
+            auto column = &dest[h*pitch];
+
+            for (int w = 0; w < width; w++) {
+                *column++ = *source++;
+                *column++ = *source++;
+                *column++ = *source++;
+                *column++ = *source++;
+            }
+        }
+    }
+
+    SDL_UnlockTexture(texture);
+
+    return texture;
+}
+
+SDL_Texture *SDLClient::CreateFontTexture(FontSample *sample) {
+    auto width = sample->GetTextureWidth();
+    auto height = sample->GetTextureHeight();
+    auto texture = SDL_CreateTexture(this->renderer,
+                                     this->texturePixelFormat,
+                                     SDL_TEXTUREACCESS_STREAMING,
+                                     width,
+                                     height);
+
+    if (texture == nullptr) {
+        return nullptr;
+    }
+
+    void *pixels;
+    int destPitch;
+    auto result = SDL_LockTexture(texture, nullptr, &pixels, &destPitch);
+
+    if (result != 0) {
+        SDL_DestroyTexture(texture);
+        return nullptr;
+    }
+
+    auto dest = reinterpret_cast<unsigned char *>(pixels);
+    auto source = sample->GetTexturePixels();
+
+    if (IsBigEndian()) {
+        for (int h = 0; h < height; h++) {
+            auto column = &dest[h*destPitch];
+
+            for (int w = 0; w < width; w++) {
+                auto alpha = *source++;
+
+                *column++ = alpha;
+                *column++ = 255;
+                *column++ = 255;
+                *column++ = 255;
+            }
+        }
+    } else {
+        for (int h = 0; h < height; h++) {
+            auto column = &dest[h*destPitch];
+
+            for (int w = 0; w < width; w++) {
+                auto alpha = *source++;
+
+                *column++ = 255;
+                *column++ = 255;
+                *column++ = 255;
+                *column++ = alpha;
+            }
+        }
+    }
+
+    SDL_UnlockTexture(texture);
+
+    return texture;
+}
+
+SDL_Texture *SDLClient::GetEffectTexture(const RoundedRectangleEffect &spec) {
+    auto it = this->roundedRectangleEffectTextures.find(spec);
+
+    if (it != this->roundedRectangleEffectTextures.end()) {
+        return it->second;
+    }
+
+    // Perf: SVG XML is created and parsed here. A performance improvement can be to create an SVGImage directly to avoid
+    // parsing. On a Macbook, parsing takes 30-40% of the time for this operation (though total time is negligible).
+    auto svg = CreateRoundedRectangleSVG(spec);
+
+    if (!svg) {
+        return (this->roundedRectangleEffectTextures[spec] = nullptr);
+    }
+
+    auto rasterizer = nsvgCreateRasterizer();
+
+    if (!rasterizer) {
+        nsvgDelete(svg);
+        return (this->roundedRectangleEffectTextures[spec] = nullptr);
+    }
+
+    auto width = svg->width;
+    auto height = svg->height;
+    auto len = width * height * 4;
+
+    if (len > sEffectScratch.size()) {
+        sEffectScratch.resize(width * height * 4);
+    }
+
+    nsvgRasterize(rasterizer, svg, 0, 0, 1, &sEffectScratch[0], width, height, width * 4);
+
+    nsvgDeleteRasterizer(rasterizer);
+    nsvgDelete(svg);
+
+    // Perf: Combine this with the copy operation in CreateTexture.
+    ConvertToFormat(&sEffectScratch[0], len, this->textureFormat);
+
+    return (this->roundedRectangleEffectTextures[spec] = this->CreateTexture(width, height, &sEffectScratch[0], len));
+}
+
+void SDLClient::DestroyTexture(SDL_Texture *texture) {
+    if (texture) {
+        SDL_DestroyTexture(texture);
+    }
+}
+
+NSVGimage *CreateRoundedRectangleSVG(const RoundedRectangleEffect &spec) {
+    char buff[100];
+    auto len = sizeof(buff);
+    std::stringstream xml;
+
+    auto radiusTopLeft = spec.radiusTopLeft;
+    auto radiusTopRight = spec.radiusTopRight;
+    auto radiusBottomRight = spec.radiusBottomRight;
+    auto radiusBottomLeft = spec.radiusBottomLeft;
+
+    auto leftWidth = spec.GetLeft();
+    auto rightWidth = spec.GetRight();
+    auto width = leftWidth + rightWidth + 1;
+
+    auto topHeight = spec.GetTop();
+    auto bottomHeight = spec.GetBottom();
+    auto height = topHeight + bottomHeight + 1;
+
+    xml << "<svg width=\"" << width << "\" height=\"" << height << "\">";
+    xml << "<path d=\"";
+
+    // start
+    xml << "M" << (radiusTopLeft == 0 ? 0 : radiusTopLeft) << ",0";
+
+    // top line
+    xml << " h" << (radiusTopLeft == 0 ? leftWidth : 0) + 1 + (radiusTopRight == 0 ? rightWidth : 0);
+
+    // top right arc
+    if (radiusTopRight > 0) {
+        xml << FormatArc(buff, len, " a%i,%i 0 0 1 %i,%i", radiusTopRight) << " ";
+    }
+
+    // right line
+    xml << " v" << (radiusTopRight == 0 ? topHeight : 0) + 1 + (radiusBottomRight == 0 ? bottomHeight : 0);
+
+    // bottom right arc
+    if (radiusBottomRight > 0) {
+        xml << FormatArc(buff, len, " a%i,%i 0 0 1 -%i,%i", radiusBottomRight);
+    }
+
+    // bottom line
+    xml << " h-" << (radiusBottomLeft == 0 ? leftWidth : 0) + 1 + (radiusBottomRight == 0 ? rightWidth : 0);
+
+    // bottom left arc
+    if (radiusBottomLeft > 0) {
+        xml << FormatArc(buff, len, " a%i,%i 0 0 1 -%i,-%i", radiusBottomLeft);
+    }
+
+    // left line
+    xml << " v-" << (radiusTopLeft == 0 ? topHeight : 0) + 1 + (radiusBottomLeft == 0 ? bottomHeight : 0);
+
+    // top left arc
+    if (radiusTopLeft > 0) {
+        xml << FormatArc(buff, len, " a%i,%i 0 0 1 %i,-%i", radiusTopLeft);
+    }
+
+    // close path
+    xml << " z\"";
+
+    if (spec.stroke > 0) {
+        xml << " fill=\"none\" stroke=\"white\"" << " stroke-width=\"" << spec.stroke << "\"";
+    } else {
+        xml << " fill=\"white\"";
+    }
+
+    xml << " />";
+    xml << "</svg>";
+
+    return nsvgParse(const_cast<char *>(xml.str().c_str()), "px", 96);
+}
+
+char *FormatArc(char *str, int len, const char *arc, int radius) {
+    snprintf(str, len, arc, radius, radius, radius, radius);
+
+    return str;
 }

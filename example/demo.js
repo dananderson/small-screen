@@ -26,11 +26,15 @@ const styles = StyleSheet({
     marginLeft: 20,
     marginRight: 20,
     marginBottom: 20,
-    padding: 20
+    padding: 20,
+    borderRadius: 14,
+    backgroundColor: '#FFF4'
   },
   tabBackground: {
     ...Style.absoluteFillObject,
-    opacity: 50
+    borderRadiusTopLeft: 14,
+    borderRadiusTopRight: 14,
+    backgroundColor: '#FFF4'
   },
   tab: {
     paddingLeft: 30,
@@ -103,7 +107,7 @@ const Tab = (props) => {
 
   return (
     <box id={props.id} focusable style={styles.tab} onFocus={onFocus} onBlur={() => setFocused(false)}>
-      <img src={'tab.svg'} style={styles.tabBackground} visible={focused} />
+      <div style={styles.tabBackground} visible={focused} />
       <text style={focused ? styles.tabTextFocus : styles.tabText}>{props.children}</text>
     </box>
   )
@@ -199,22 +203,12 @@ const Demo = () => {
           <Tab id='tab3' onTabFocus={() => setPage({ component: GamepadPage })}>Gamepads</Tab>
         </FocusGroup>
         <box style={styles.page}>
-          <img style={styles.tabBackground} src={'page.svg'} />
           <Page />
         </box>
       </box>
     </box>
   )
 }
-
-const page = `<svg viewBox="0 0 32 32">
-    <rect x="0" y="0" width="32" height="32" rx="14" ry="14" style="fill:white"/>
-</svg>`
-
-const tab = `<svg viewBox="0 0 32 32">
-    <rect x="0" y="0" width="32" height="32" rx="14" ry="14" style="fill:white"/>
-    <rect x="0" y="16" width="32" height="16" style="fill:white"/>
-</svg>`
 
 main({
   width: 1280,
@@ -225,8 +219,6 @@ main({
   start: true,
   title: 'Example App',
   images: [
-    { alias: 'page.svg', uri: `data:image/svg+xml,${encodeURIComponent(page)}`, capInsets: 14 },
-    { alias: 'tab.svg', uri: `data:image/svg+xml,${encodeURIComponent(tab)}`, capInsets: 14 },
     // Photo source: https://unsplash.com/photos/TWoL-QCZubY
     'beach.jpg'
   ],

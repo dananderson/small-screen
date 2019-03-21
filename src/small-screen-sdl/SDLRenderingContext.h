@@ -8,6 +8,8 @@
 #define SDLRENDERINGCONTEXT_H
 
 #include "napi.h"
+#include "SDLClient.h"
+#include "Rectangle.h"
 #include <SDL.h>
 #include <vector>
 
@@ -29,7 +31,9 @@ public:
     void FillRect(const Napi::CallbackInfo& info);
     void Border(const Napi::CallbackInfo& info);
     void DrawText(const Napi::CallbackInfo& info);
-    void BlitCapInsets(const Napi::CallbackInfo& info);
+    void FillRectRounded(const Napi::CallbackInfo& info);
+    void BorderRounded(const Napi::CallbackInfo& info);
+    void Destroy(const Napi::CallbackInfo& info);
 
 private:
     static Napi::FunctionReference constructor;
@@ -43,6 +47,9 @@ private:
     std::vector<SDL_Rect> clipRectStack;
     std::vector<uint8_t> opacityStack;
     std::vector<int> positionStack;
+    SDLClient *client;
+
+    void BlitInternal(SDL_Texture *texture, const Rectangle& capInsets, int x, int y, int width, int height);
 };
 
 #endif

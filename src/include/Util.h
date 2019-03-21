@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include "TextureFormat.h"
 
 inline bool IsBigEndian() {
     uint32_t i = 1;
@@ -54,5 +55,6 @@ inline std::string GetBasename(const std::string& str) {
 }
 
 void ReadBytesFromFile(const std::string filename, std::vector<unsigned char>& target);
+void ConvertToFormat(unsigned char *bytes, int len, TextureFormat format);
 
 #endif

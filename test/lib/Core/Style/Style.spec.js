@@ -6,7 +6,7 @@
 
 import chai, { assert } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { Style } from '../../../../lib/Core/Style'
+import { Style, HINT_HAS_BORDER_RADIUS } from '../../../../lib/Core/Style/Style'
 
 chai.use(chaiAsPromised)
 
@@ -21,5 +21,32 @@ describe('Style()', () => {
     assert.equal(style.color, 0)
     assert.equal(style.backgroundColor, 0)
     assert.equal(style.borderColor, 0)
+  })
+  describe('borderRadius', () => {
+    it('should set borderRadius', () => {
+      const style = Style({
+        borderRadius: 10
+      })
+
+      assert.equal(style.borderRadius, 10)
+      assert.isTrue(style[HINT_HAS_BORDER_RADIUS])
+    })
+    it('should set borderRadiusTopLeft', () => {
+      const style = Style({
+        borderRadiusTopLeft: 10
+      })
+
+      assert.equal(style.borderRadius, 0)
+      assert.equal(style.borderRadiusTopLeft, 10)
+      assert.isTrue(style[HINT_HAS_BORDER_RADIUS])
+    })
+    it('should should throw error for invalid borderRadius', () => {
+      assert.throws(() => Style({ borderRadiusTopLeft: 'invalid' }))
+    })
+    it('should not set HINT_HAS_BORDER_RADIUS', () => {
+      const style = Style({})
+
+      assert.isFalse(style[HINT_HAS_BORDER_RADIUS])
+    })
   })
 })

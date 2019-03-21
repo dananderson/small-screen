@@ -248,129 +248,6 @@ Value JS_GetEvents(const CallbackInfo& info) {
     return Number::New(info.Env(), result);
 }
 
-Value JS_CreateFontTexture(const CallbackInfo& info) {
-    auto client = ObjectWrap<SDLClient>::Unwrap(info[0].As<Object>());
-    auto sample = info[1].As<External<FontSample>>().Data();
-    auto format = info[2].As<Number>().Uint32Value();
-    auto width = sample->GetTextureWidth();
-    auto height = sample->GetTextureHeight();
-
-    auto texture = SDL_CreateTexture(client->GetRenderer(),
-                                     format,
-                                     SDL_TEXTUREACCESS_STREAMING,
-                                     width,
-                                     height);
-
-    if (texture == nullptr) {
-        throw Error::New(info.Env(), Format() << "Failed to create texture. " << SDL_GetError());
-    }
-
-    void *pixels;
-    int destPitch;
-
-    auto result = SDL_LockTexture(texture, nullptr, &pixels, &destPitch);
-
-    if (result != 0) {
-        SDL_DestroyTexture(texture);
-        throw Error::New(info.Env(), Format() << "Failed to lock texture. " << SDL_GetError());
-    }
-
-
-    auto dest = reinterpret_cast<unsigned char *>(pixels);
-    auto source = sample->GetTexturePixels();
-
-    if (IsBigEndian()) {
-        for (int h = 0; h < height; h++) {
-            auto column = &dest[h*destPitch];
-
-            for (int w = 0; w < width; w++) {
-                auto alpha = *source++;
-
-                *column++ = alpha;
-                *column++ = 255;
-                *column++ = 255;
-                *column++ = 255;
-            }
-        }
-    } else {
-        for (int h = 0; h < height; h++) {
-            auto column = &dest[h*destPitch];
-
-            for (int w = 0; w < width; w++) {
-                auto alpha = *source++;
-
-                *column++ = 255;
-                *column++ = 255;
-                *column++ = 255;
-                *column++ = alpha;
-            }
-        }
-    }
-
-    SDL_UnlockTexture(texture);
-
-    return External<SDL_Texture>::New(info.Env(), texture);
-}
-
-Value JS_CreateTexture(const CallbackInfo& info) {
-    auto client = ObjectWrap<SDLClient>::Unwrap(info[0].As<Object>());
-    auto width = info[1].As<Number>().Int32Value();
-    auto height = info[2].As<Number>().Int32Value();
-    auto format = info[3].As<Number>().Uint32Value();
-    auto source = info[4].As<Buffer<Uint8>>().Data();
-
-    auto texture = SDL_CreateTexture(client->GetRenderer(),
-                                     format,
-                                     SDL_TEXTUREACCESS_STREAMING,
-                                     width,
-                                     height);
-
-    if (texture == nullptr) {
-        throw Error::New(info.Env(), Format() << "Failed to create texture. " << SDL_GetError());
-    }
-
-    void *pixels;
-    int pitch;
-
-    auto result = SDL_LockTexture(texture, nullptr, &pixels, &pitch);
-
-    if (result != 0) {
-        SDL_DestroyTexture(texture);
-        throw Error::New(info.Env(), Format() << "Failed to lock texture. " << SDL_GetError());
-    }
-
-    int bpp = SDL_BYTESPERPIXEL(format);
-
-    if (pitch == width * bpp) {
-        memcpy(pixels, source, bpp * width * height);
-    } else {
-        auto dest = reinterpret_cast<unsigned char *>(pixels);
-
-        for (int h = 0; h < height; h++) {
-            auto column = &dest[h*pitch];
-
-            for (int w = 0; w < width; w++) {
-                *column++ = *source++;
-                *column++ = *source++;
-                *column++ = *source++;
-                *column++ = *source++;
-            }
-        }
-    }
-
-    SDL_UnlockTexture(texture);
-
-    return External<SDL_Texture>::New(info.Env(), texture);
-}
-
-void JS_DestroyTexture(const CallbackInfo& info) {
-    auto texture = info[0].IsExternal() ? info[0].As<External<SDL_Texture>>().Data() : nullptr;
-
-    if (texture) {
-        SDL_DestroyTexture(texture);
-    }
-}
-
 Value toResolution(const Env env, int width, int height) {
     auto result = Object::New(env);
 
@@ -396,9 +273,6 @@ Object SDLBindingsInit(Env env, Object exports) {
 
     // TODO: refactor these free floating functions to a class
     exports["getEvents"] = Function::New(env, JS_GetEvents, "getEvents");
-    exports["createTexture"] = Function::New(env, JS_CreateTexture, "createTexture");
-    exports["createFontTexture"] = Function::New(env, JS_CreateFontTexture, "createFontTexture");
-    exports["destroyTexture"] = Function::New(env, JS_DestroyTexture, "destroyTexture");
 
     return exports;
 }

@@ -48,7 +48,9 @@
         "src/common/Util.cc",
         "src/common/Font.cc",
         "src/common/FontSample.cc",
-        "src/common/TextLayout.cc"
+        "src/common/TextLayout.cc",
+        "src/common/CapInsets.cc",
+        "src/common/nanosvg.cc"
       ]
     },
     {
@@ -91,8 +93,6 @@
       ],
       "sources": [
         "src/small-screen-lib/AsyncTaskQueue.cc",
-        "src/small-screen-lib/CapInsets.cc",
-        "src/small-screen-lib/nanosvg.cc",
         "src/small-screen-lib/stb.cc",
         "src/small-screen-lib/StbFont.cc",
         "src/small-screen-lib/StbFontSample.cc",
@@ -110,6 +110,7 @@
         "<!@(node -p \"require('node-addon-api').include\")",
         "<(sdl_include_path)",
         "deps/utf8_v2_3_4",
+        "deps/nanosvg",
         "src/include"
       ],
       "cflags!": [
@@ -140,6 +141,7 @@
         ]
       ],
       "sources": [
+        "src/small-screen-sdl/RoundedRectangleEffect.cc",
         "src/small-screen-sdl/SDLClient.cc",
         "src/small-screen-sdl/SDLRenderingContext.cc",
         "src/small-screen-sdl/SDLAudioContext.cc",

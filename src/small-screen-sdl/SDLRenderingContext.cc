@@ -11,14 +11,18 @@
 #include "CapInsets.h"
 #include "SDLClient.h"
 #include <iostream>
+#include <chrono>
+#include <memory>
 
 using namespace Napi;
+using namespace std::chrono;
 
 inline void SetTextureTintColor(SDL_Texture *texture, uint32_t color, uint8_t opacity);
 inline void SetRenderDrawColor(SDL_Renderer *renderer, uint32_t color, uint8_t opacity);
 inline uint8_t GetAlpha(const uint32_t color);
-
+                                                                    
 FunctionReference SDLRenderingContext::constructor;
+static const int64_t COLOR32 = 0xFFFFFFFF;
 
 Object SDLRenderingContext::Init(Napi::Env env, Object exports) {
   Function func = DefineClass(env, "SDLRenderingContext", {
@@ -32,8 +36,10 @@ Object SDLRenderingContext::Init(Napi::Env env, Object exports) {
     InstanceMethod("unshift", &SDLRenderingContext::Unshift),
     InstanceMethod("border", &SDLRenderingContext::Border),
     InstanceMethod("fillRect", &SDLRenderingContext::FillRect),
-    InstanceMethod("blitCapInsets", &SDLRenderingContext::BlitCapInsets),
     InstanceMethod("drawText", &SDLRenderingContext::DrawText),
+    InstanceMethod("fillRectRounded", &SDLRenderingContext::FillRectRounded),
+    InstanceMethod("borderRounded", &SDLRenderingContext::BorderRounded),
+    InstanceMethod("destroy", &SDLRenderingContext::Destroy),
   });
 
   constructor = Persistent(func);
@@ -48,6 +54,11 @@ SDLRenderingContext::SDLRenderingContext(const CallbackInfo& info)
     : ObjectWrap<SDLRenderingContext>(info), wx(0), wy(0), opacity(255),
       hasColorAlpha(false), hasBackgroundColorAlpha(false), hasBorderColorAlpha(false), hasTintColorAlpha(false),
       color(0), backgroundColor(0), borderColor(0), tintColor(0xFFFFFF) {
+    this->client = ObjectWrap<SDLClient>::Unwrap(info[0].As<Object>());
+    this->renderer = client->GetRenderer();
+}
+
+void SDLRenderingContext::Destroy(const Napi::CallbackInfo& info) {
 
 }
 
@@ -60,7 +71,6 @@ void SDLRenderingContext::PushStyle(const CallbackInfo& info) {
         this->opacity = static_cast<uint8_t>(this->opacity * newOpacity / 255.f);
     }
 
-    static const int64_t COLOR32 = 0xFFFFFFFF;
     int64_t value;
 
     value = info[1].As<Number>().Int64Value();
@@ -90,12 +100,12 @@ void SDLRenderingContext::PopStyle(const CallbackInfo& info) {
 }
 
 Value SDLRenderingContext::Reset(const CallbackInfo& info) {
-    auto client = ObjectWrap<SDLClient>::Unwrap(info[0].As<Object>());
-
-    this->renderer = client->GetRenderer();
     this->opacity = 255;
     this->wx = this->wy = 0;
-    
+    this->hasColorAlpha = this->hasBackgroundColorAlpha = this->hasBorderColorAlpha = this->hasTintColorAlpha = false;
+    this->color = this->backgroundColor = this->borderColor = 0;
+    this->tintColor = 0xFFFFFF;
+
     clipRectStack.clear();
     opacityStack.clear();
     positionStack.clear();
@@ -136,20 +146,6 @@ void SDLRenderingContext::PopClipRect(const CallbackInfo& info) {
     this->clipRectStack.pop_back();
 
     SDL_RenderSetClipRect(this->renderer, this->clipRectStack.empty() ? nullptr : &this->clipRectStack.back());
-}
-
-void SDLRenderingContext::Blit(const CallbackInfo& info) {
-    auto texture = info[0].As<External<SDL_Texture>>().Data();
-    SDL_Rect rect = {
-        info[1].As<Number>().Int32Value() + this->wx,
-        info[2].As<Number>().Int32Value() + this->wy,
-        info[3].As<Number>().Int32Value(),
-        info[4].As<Number>().Int32Value()
-    };
-
-    SetTextureTintColor(texture, this->tintColor, this->hasTintColorAlpha ? GetAlpha(this->tintColor) : this->opacity);
-
-    SDL_RenderCopy(this->renderer, texture, nullptr, &rect);
 }
 
 void SDLRenderingContext::Shift(const CallbackInfo& info) {
@@ -194,10 +190,10 @@ void SDLRenderingContext::Border(const CallbackInfo& info) {
     auto w = info[2].As<Number>().Int32Value();
     auto h = info[3].As<Number>().Int32Value();
 
-    auto borderLeft = info[4].As<Number>().Int32Value();
-    auto borderTop = info[5].As<Number>().Int32Value();
-    auto borderRight = info[6].As<Number>().Int32Value();
-    auto borderBottom = info[7].As<Number>().Int32Value();
+    auto borderTop = info[4].As<Number>().Int32Value();
+    auto borderRight = info[5].As<Number>().Int32Value();
+    auto borderBottom = info[6].As<Number>().Int32Value();
+    auto borderLeft = info[7].As<Number>().Int32Value();
 
     if (borderTop != 0) {
         ptr = &rect[count++];
@@ -278,18 +274,81 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
     }
 }
 
-void SDLRenderingContext::BlitCapInsets(const CallbackInfo& info) {
+void SDLRenderingContext::Blit(const CallbackInfo& info) {
     auto texture = info[0].As<External<SDL_Texture>>().Data();
-    auto capInsets = ObjectWrap<CapInsets>::Unwrap(info[1].As<Object>());
     auto x = info[2].As<Number>().Int32Value() + this->wx;
     auto y = info[3].As<Number>().Int32Value() + this->wy;
     auto width = info[4].As<Number>().Int32Value();
     auto height = info[5].As<Number>().Int32Value();
 
-    auto left = capInsets->GetLeft();
-    auto top = capInsets->GetTop();
-    auto right = capInsets->GetRight();
-    auto bottom = capInsets->GetBottom();
+    SetTextureTintColor(texture, this->tintColor, this->hasTintColorAlpha ? GetAlpha(this->tintColor) : this->opacity);
+
+    if (!info[1].ToBoolean()) {
+        SDL_Rect rect = { x, y, width, height };
+
+        SDL_RenderCopy(this->renderer, texture, nullptr, &rect);
+    } else {
+        auto capInsets = ObjectWrap<CapInsets>::Unwrap(info[1].As<Object>());
+
+        this->BlitInternal(texture, capInsets->GetRectangle(), x, y, width, height);
+    }
+}
+
+void SDLRenderingContext::FillRectRounded(const Napi::CallbackInfo& info) {
+    RoundedRectangleEffect roundedRectangleEffect = {
+        // border radius
+        info[4].As<Number>().Int32Value(),
+        info[5].As<Number>().Int32Value(),
+        info[6].As<Number>().Int32Value(),
+        info[7].As<Number>().Int32Value(),
+        // stroke
+        0
+    };
+
+    auto texture = this->client->GetEffectTexture(roundedRectangleEffect);
+
+    if (texture) {
+        SetTextureTintColor(texture, this->backgroundColor, this->hasBackgroundColorAlpha ? GetAlpha(this->backgroundColor) : this->opacity);
+        this->BlitInternal(
+            texture,
+            roundedRectangleEffect.GetCapInsets(),
+            info[0].As<Number>().Int32Value() + this->wx,
+            info[1].As<Number>().Int32Value() + this->wy,
+            info[2].As<Number>().Int32Value(),
+            info[3].As<Number>().Int32Value());
+    }
+}
+
+void SDLRenderingContext::BorderRounded(const Napi::CallbackInfo& info) {
+    RoundedRectangleEffect roundedRectangleEffect = {
+        // border radius
+        info[5].As<Number>().Int32Value(),
+        info[6].As<Number>().Int32Value(),
+        info[7].As<Number>().Int32Value(),
+        info[8].As<Number>().Int32Value(),
+        // stroke
+        info[4].As<Number>().Int32Value()
+    };
+
+    auto texture = this->client->GetEffectTexture(roundedRectangleEffect);
+
+    if (texture != nullptr) {
+        SetTextureTintColor(texture, this->borderColor, this->hasBorderColorAlpha ? GetAlpha(this->borderColor) : this->opacity);
+        this->BlitInternal(
+            texture,
+            roundedRectangleEffect.GetCapInsets(),
+            info[0].As<Number>().Int32Value() + this->wx,
+            info[1].As<Number>().Int32Value() + this->wy,
+            info[2].As<Number>().Int32Value(),
+            info[3].As<Number>().Int32Value());
+    }
+}
+
+void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& capInsets, int x, int y, int width, int height) {
+    auto left = capInsets.left;
+    auto top = capInsets.top;
+    auto right = capInsets.right;
+    auto bottom = capInsets.bottom;
 
     int textureWidth;
     int textureHeight;
@@ -299,8 +358,6 @@ void SDLRenderingContext::BlitCapInsets(const CallbackInfo& info) {
     SDL_Rect destRect;
 
     SDL_QueryTexture(texture, nullptr, nullptr, &textureWidth, &textureHeight);
-    
-    SetTextureTintColor(texture, this->tintColor, this->hasTintColorAlpha ? GetAlpha(this->tintColor) : this->opacity);
 
     // Top row
 
