@@ -7,6 +7,7 @@
 import chai, { assert } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import { Style, HINT_HAS_BORDER_RADIUS } from '../../../../lib/Core/Style/Style'
+import Yoga from 'yoga-layout'
 
 chai.use(chaiAsPromised)
 
@@ -47,6 +48,85 @@ describe('Style()', () => {
       const style = Style({})
 
       assert.isFalse(style[HINT_HAS_BORDER_RADIUS])
+    })
+  })
+  describe('objectPosition', () => {
+    it('should set objectPosition with number', () => {
+      const style = Style({
+        objectPositionX: 3,
+        objectPositionY: 5
+      })
+
+      assert.equal(style.objectPositionX.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionX.value, 3)
+
+      assert.equal(style.objectPositionY.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionY.value, 5)
+    })
+    it('should set objectPosition with string number', () => {
+      const style = Style({
+        objectPositionX: '3',
+        objectPositionY: '5'
+      })
+
+      assert.equal(style.objectPositionX.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionX.value, 3)
+
+      assert.equal(style.objectPositionY.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionY.value, 5)
+    })
+    it('should set objectPosition with string %', () => {
+      const style = Style({
+        objectPositionX: '30%',
+        objectPositionY: '50%'
+      })
+
+      assert.equal(style.objectPositionX.unit, Yoga.UNIT_PERCENT)
+      assert.approximately(style.objectPositionX.value, 0.30, 0.01)
+
+      assert.equal(style.objectPositionY.unit, Yoga.UNIT_PERCENT)
+      assert.approximately(style.objectPositionY.value, 0.50, 0.01)
+    })
+    it('should set objectPosition with left', () => {
+      const style = Style({
+        objectPositionX: 'left'
+      })
+
+      assert.equal(style.objectPositionX.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionX.value, 0)
+    })
+    it('should set objectPosition with right', () => {
+      const style = Style({
+        objectPositionX: 'right'
+      })
+
+      assert.equal(style.objectPositionX, 'right')
+    })
+    it('should set objectPosition with top', () => {
+      const style = Style({
+        objectPositionY: 'top'
+      })
+
+      assert.equal(style.objectPositionY.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionY.value, 0)
+    })
+    it('should set objectPosition with bottom', () => {
+      const style = Style({
+        objectPositionY: 'bottom'
+      })
+
+      assert.equal(style.objectPositionY, 'bottom')
+    })
+    it('should throw Error for invalid values', () => {
+      assert.throws(() => Style({ objectPositionX: {} }))
+      assert.throws(() => Style({ objectPositionX: '' }))
+      assert.throws(() => Style({ objectPositionX: null }))
+      assert.throws(() => Style({ objectPositionX: NaN }))
+      assert.throws(() => Style({ objectPositionX: '%' }))
+      assert.throws(() => Style({ objectPositionX: 'top' }))
+      assert.throws(() => Style({ objectPositionX: 'bottom' }))
+      assert.throws(() => Style({ objectPositionY: 'left' }))
+      assert.throws(() => Style({ objectPositionY: 'right' }))
     })
   })
 })
