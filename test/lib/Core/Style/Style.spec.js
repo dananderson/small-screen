@@ -64,7 +64,7 @@ describe('Style()', () => {
       assert.equal(style.objectPositionY.value, 5)
     })
     it('should set objectPosition with string number', () => {
-      const style = Style({
+      let style = Style({
         objectPositionX: '3',
         objectPositionY: '5'
       })
@@ -74,6 +74,17 @@ describe('Style()', () => {
 
       assert.equal(style.objectPositionY.unit, Yoga.UNIT_POINT)
       assert.equal(style.objectPositionY.value, 5)
+
+      style = Style({
+        objectPositionX: '3.3',
+        objectPositionY: '5.5'
+      })
+
+      assert.equal(style.objectPositionX.unit, Yoga.UNIT_POINT)
+      assert.approximately(style.objectPositionX.value, 3.3, 0.01)
+
+      assert.equal(style.objectPositionY.unit, Yoga.UNIT_POINT)
+      assert.approximately(style.objectPositionY.value, 5.5, 0.01)
     })
     it('should set objectPosition with string %', () => {
       const style = Style({
