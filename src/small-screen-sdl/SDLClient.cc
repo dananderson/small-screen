@@ -368,11 +368,23 @@ NSVGimage *CreateRoundedRectangleSVG(const RoundedRectangleEffect &spec) {
     auto bottomHeight = spec.GetBottom();
     auto height = topHeight + bottomHeight + 1;
 
-    xml << "<svg width=\"" << width << "\" height=\"" << height << "\">";
+    int strokeOverdrawCorrection;
+
+    if (spec.stroke > 0) {
+        // The stroke or border is drawn half inside and half outside the path boundaries. If the stroke-width is an
+        // odd value, stroke / 2 is drawn outside the path and the rest is inside. With this SVG renderer, using
+        // the ceiling of stroke / 2 seems to produce the best results. I suspect a bug in the renderer with respect
+        // to drawing strokes, but I have not looked into it.
+        strokeOverdrawCorrection = 1 + ((spec.stroke - 1) / 2);
+    } else {
+        strokeOverdrawCorrection = 0;
+    }
+
+    xml << "<svg width=\"" << width + strokeOverdrawCorrection * 2 << "\" height=\"" << height + strokeOverdrawCorrection * 2 << "\">";
     xml << "<path d=\"";
 
     // start
-    xml << "M" << (radiusTopLeft == 0 ? 0 : radiusTopLeft) << ",0";
+    xml << "M" << (radiusTopLeft == 0 ? strokeOverdrawCorrection : radiusTopLeft + strokeOverdrawCorrection) << "," << strokeOverdrawCorrection;
 
     // top line
     xml << " h" << (radiusTopLeft == 0 ? leftWidth : 0) + 1 + (radiusTopRight == 0 ? rightWidth : 0);
