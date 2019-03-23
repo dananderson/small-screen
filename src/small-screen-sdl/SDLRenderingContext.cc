@@ -20,7 +20,9 @@ using namespace std::chrono;
 inline void SetTextureTintColor(SDL_Texture *texture, uint32_t color, uint8_t opacity);
 inline void SetRenderDrawColor(SDL_Renderer *renderer, uint32_t color, uint8_t opacity);
 inline uint8_t GetAlpha(const uint32_t color);
-                                                                    
+inline void RenderCopy(SDL_Renderer *renderer, SDL_Texture *texture, const SDL_Rect *srcrect, const SDL_Rect * dstrect,
+    Value rotationAngle, const SDL_Point *rotationPoint);
+
 FunctionReference SDLRenderingContext::constructor;
 static const int64_t COLOR32 = 0xFFFFFFFF;
 
@@ -246,6 +248,9 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
     auto textAlign = (TextAlign)(info[8].IsNumber() ? info[8].As<Number>().Int32Value() : TEXT_ALIGN_LEFT);
     auto maxLines = info[9].IsNumber() ? info[9].As<Number>().Int32Value() : 0;
     auto ellipsize = info[10].ToBoolean().Value();
+    auto rotationAngleValue = info[11];
+    auto rotationPointX = this->wx + width / 2;
+    auto rotationPointY = this->wy + height / 2;
 
     // Layout will only be calculated if necessary (no text, no style, no bounds changes).
     textLayout->Layout(text, sample, maxLines, ellipsize, width, MEASURE_MODE_EXACTLY, height, MEASURE_MODE_EXACTLY);
@@ -254,6 +259,9 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
     auto lineHeight = sample->GetLineHeight();
     auto dx = textLayout->GetLineAlignmentOffset(line++, textAlign);
     auto dy = 0.f;
+    auto hasRotation = rotationAngleValue.IsNumber();
+    const SDL_Rect *destRect;
+    SDL_Point rotationPoint = { 0, 0 };
 
     SetTextureTintColor(texture, this->color, this->hasColorAlpha ? GetAlpha(this->color) : this->opacity);
 
@@ -261,10 +269,19 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
     // be used directly to improve performance.
     for (auto iter = textLayout->Begin(); iter != textLayout->End(); iter++) {
         if (iter->HasTexture()) {
-            SDL_RenderCopy(this->renderer,
+            destRect = reinterpret_cast<const SDL_Rect *>(iter->GetDestRect(dx + x, dy + y));
+
+            if (hasRotation) {
+                rotationPoint.x = rotationPointX - destRect->x;
+                rotationPoint.y = rotationPointY - destRect->y;
+            }
+
+            RenderCopy(this->renderer,
                            texture,
                            reinterpret_cast<const SDL_Rect *>(iter->GetSourceRect()),
-                           reinterpret_cast<const SDL_Rect *>(iter->GetDestRect(dx + x, dy + y)));
+                           destRect,
+                           rotationAngleValue,
+                           &rotationPoint);
         } else if (iter->IsNewLine()) {
             dx = textLayout->GetLineAlignmentOffset(line++, textAlign);
             dy += lineHeight;
@@ -276,21 +293,27 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
 
 void SDLRenderingContext::Blit(const CallbackInfo& info) {
     auto texture = info[0].As<External<SDL_Texture>>().Data();
-    auto x = info[2].As<Number>().Int32Value() + this->wx;
-    auto y = info[3].As<Number>().Int32Value() + this->wy;
-    auto width = info[4].As<Number>().Int32Value();
-    auto height = info[5].As<Number>().Int32Value();
+    auto capInsetsValue = info[1];
+    auto rotationAngleValue = info[2];
+    auto rotationPointX = info[3].As<Number>().Int32Value();
+    auto rotationPointY = info[4].As<Number>().Int32Value();
+    auto x = info[5].As<Number>().Int32Value() + this->wx;
+    auto y = info[6].As<Number>().Int32Value() + this->wy;
+    auto width = info[7].As<Number>().Int32Value();
+    auto height = info[8].As<Number>().Int32Value();
 
     SetTextureTintColor(texture, this->tintColor, this->hasTintColorAlpha ? GetAlpha(this->tintColor) : this->opacity);
 
-    if (!info[1].ToBoolean()) {
+    SDL_Point rotationPoint = { rotationPointX, rotationPointY };
+
+    if (!capInsetsValue.IsObject()) {
         SDL_Rect rect = { x, y, width, height };
 
-        SDL_RenderCopy(this->renderer, texture, nullptr, &rect);
+        RenderCopy(this->renderer, texture, nullptr, &rect, rotationAngleValue, &rotationPoint);
     } else {
-        auto capInsets = ObjectWrap<CapInsets>::Unwrap(info[1].As<Object>());
+        auto capInsets = ObjectWrap<CapInsets>::Unwrap(capInsetsValue.As<Object>());
 
-        this->BlitInternal(texture, capInsets->GetRectangle(), x, y, width, height);
+        this->BlitCapInsets(texture, capInsets->GetRectangle(), x, y, width, height, rotationAngleValue, &rotationPoint);
     }
 }
 
@@ -309,13 +332,15 @@ void SDLRenderingContext::FillRectRounded(const Napi::CallbackInfo& info) {
 
     if (texture) {
         SetTextureTintColor(texture, this->backgroundColor, this->hasBackgroundColorAlpha ? GetAlpha(this->backgroundColor) : this->opacity);
-        this->BlitInternal(
+        this->BlitCapInsets(
             texture,
             roundedRectangleEffect.GetCapInsets(),
             info[0].As<Number>().Int32Value() + this->wx,
             info[1].As<Number>().Int32Value() + this->wy,
             info[2].As<Number>().Int32Value(),
-            info[3].As<Number>().Int32Value());
+            info[3].As<Number>().Int32Value(),
+            info.Env().Undefined(),
+            nullptr);
     }
 }
 
@@ -334,17 +359,20 @@ void SDLRenderingContext::BorderRounded(const Napi::CallbackInfo& info) {
 
     if (texture != nullptr) {
         SetTextureTintColor(texture, this->borderColor, this->hasBorderColorAlpha ? GetAlpha(this->borderColor) : this->opacity);
-        this->BlitInternal(
+        this->BlitCapInsets(
             texture,
             roundedRectangleEffect.GetCapInsets(),
             info[0].As<Number>().Int32Value() + this->wx,
             info[1].As<Number>().Int32Value() + this->wy,
             info[2].As<Number>().Int32Value(),
-            info[3].As<Number>().Int32Value());
+            info[3].As<Number>().Int32Value(),
+            info.Env().Undefined(),
+            nullptr);
     }
 }
 
-void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& capInsets, int x, int y, int width, int height) {
+void SDLRenderingContext::BlitCapInsets(SDL_Texture *texture, const Rectangle& capInsets,
+        int x, int y, int width, int height, Napi::Value rotationAngleValue, SDL_Point *rotationPoint) {
     auto left = capInsets.left;
     auto top = capInsets.top;
     auto right = capInsets.right;
@@ -371,7 +399,7 @@ void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& ca
     destRect.w = left;
     destRect.h = top;
 
-    SDL_RenderCopy(this->renderer, texture, &srcRect, &destRect);
+    RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 
     srcRect.x = left;
     srcRect.y = 0;
@@ -383,7 +411,7 @@ void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& ca
     destRect.w = width - left - right;
     destRect.h = top;
 
-    SDL_RenderCopy(this->renderer, texture, &srcRect, &destRect);
+    RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 
     srcRect.x = textureWidth - right;
     srcRect.y = 0;
@@ -395,7 +423,7 @@ void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& ca
     destRect.w = right;
     destRect.h = top;
 
-    SDL_RenderCopy(this->renderer, texture, &srcRect, &destRect);
+    RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 
     // Middle row
 
@@ -409,7 +437,7 @@ void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& ca
     destRect.w = left;
     destRect.h = height - top - bottom;
 
-    SDL_RenderCopy(this->renderer, texture, &srcRect, &destRect);
+    RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 
     srcRect.x = left;
     srcRect.y = top;
@@ -421,7 +449,7 @@ void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& ca
     destRect.w = width - left - right;
     destRect.h = height - top - bottom;
 
-    SDL_RenderCopy(this->renderer, texture, &srcRect, &destRect);
+    RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 
     srcRect.x = textureWidth - right;
     srcRect.y = top;
@@ -433,7 +461,7 @@ void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& ca
     destRect.w = right;
     destRect.h = height - top - bottom;
 
-    SDL_RenderCopy(this->renderer, texture, &srcRect, &destRect);
+    RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 
     // Bottom row
 
@@ -447,7 +475,7 @@ void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& ca
     destRect.w = left;
     destRect.h = bottom;
 
-    SDL_RenderCopy(this->renderer, texture, &srcRect, &destRect);
+    RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 
     srcRect.x = left;
     srcRect.y = textureHeight - bottom;
@@ -459,7 +487,7 @@ void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& ca
     destRect.w = width - left - right;
     destRect.h = bottom;
 
-    SDL_RenderCopy(this->renderer, texture, &srcRect, &destRect);
+    RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 
     srcRect.x = textureWidth - right;
     srcRect.y = textureHeight - bottom;
@@ -471,7 +499,7 @@ void SDLRenderingContext::BlitInternal(SDL_Texture *texture, const Rectangle& ca
     destRect.w = right;
     destRect.h = bottom;
 
-    SDL_RenderCopy(this->renderer, texture, &srcRect, &destRect);
+    RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 }
 
 inline void SetTextureTintColor(SDL_Texture *texture, uint32_t color, uint8_t opacity) {
@@ -496,4 +524,17 @@ inline void SetRenderDrawColor(SDL_Renderer *renderer, uint32_t color, uint8_t o
 
 inline uint8_t GetAlpha(const uint32_t color) {
     return static_cast<uint8_t>(IsBigEndian() ? (color & 0xFF) : ((color & 0xFF000000) >> 24));
+}
+
+inline void RenderCopy(SDL_Renderer *renderer,
+        SDL_Texture *texture,
+        const SDL_Rect *srcrect,
+        const SDL_Rect *dstrect,
+        Value rotationAngle,
+        const SDL_Point *rotationPoint) {
+    if (rotationAngle.IsNumber()) {
+        SDL_RenderCopyEx(renderer, texture, srcrect, dstrect, rotationAngle.As<Number>().DoubleValue(), rotationPoint, SDL_FLIP_NONE);
+    } else {
+        SDL_RenderCopy(renderer, texture, srcrect, dstrect);
+    }
 }

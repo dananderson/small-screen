@@ -49,7 +49,7 @@ private:
     std::vector<int> positionStack;
     SDLClient *client;
 
-    void BlitInternal(SDL_Texture *texture, const Rectangle& capInsets, int x, int y, int width, int height);
+    void BlitCapInsets(SDL_Texture *texture, const Rectangle& capInsets, int x, int y, int width, int height, Napi::Value rotationAngleValue, SDL_Point *rotationPoint);
 };
 
 #endif
