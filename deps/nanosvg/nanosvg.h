@@ -184,6 +184,7 @@ void nsvgDelete(NSVGimage* image);
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <float.h>
 
 #define NSVG_PI (3.14159265358979323846264338327f)
 #define NSVG_KAPPA90 (0.5522847493f)	// Length proportional to radius of a cubic bezier handle for 90deg arcs.
@@ -2729,19 +2730,23 @@ static void nsvg__imageBounds(NSVGparser* p, float* bounds)
 {
 	NSVGshape* shape;
 	shape = p->image->shapes;
-	if (shape == NULL) {
-		bounds[0] = bounds[1] = bounds[2] = bounds[3] = 0.0;
-		return;
-	}
-	bounds[0] = shape->bounds[0];
-	bounds[1] = shape->bounds[1];
-	bounds[2] = shape->bounds[2];
-	bounds[3] = shape->bounds[3];
-	for (shape = shape->next; shape != NULL; shape = shape->next) {
-		bounds[0] = nsvg__minf(bounds[0], shape->bounds[0]);
-		bounds[1] = nsvg__minf(bounds[1], shape->bounds[1]);
-		bounds[2] = nsvg__maxf(bounds[2], shape->bounds[2]);
-		bounds[3] = nsvg__maxf(bounds[3], shape->bounds[3]);
+	bounds[0] = FLT_MAX;
+	bounds[1] = FLT_MAX;
+	bounds[2] = -FLT_MAX;
+	bounds[3] = -FLT_MAX;
+	while (shape != NULL) {
+		if (shape->stroke.type != NSVG_PAINT_NONE) {
+			bounds[0] = nsvg__minf(bounds[0], shape->bounds[0] - shape->strokeWidth/2);
+			bounds[1] = nsvg__minf(bounds[1], shape->bounds[1] - shape->strokeWidth/2);
+			bounds[2] = nsvg__maxf(bounds[2], shape->bounds[2] + shape->strokeWidth/2);
+			bounds[3] = nsvg__maxf(bounds[3], shape->bounds[3] + shape->strokeWidth/2);
+		} else {
+			bounds[0] = nsvg__minf(bounds[0], shape->bounds[0]);
+			bounds[1] = nsvg__minf(bounds[1], shape->bounds[1]);
+			bounds[2] = nsvg__maxf(bounds[2], shape->bounds[2]);
+			bounds[3] = nsvg__maxf(bounds[3], shape->bounds[3]);
+		}
+		shape = shape->next;
 	}
 }
 
@@ -2775,8 +2780,11 @@ static void nsvg__scaleToViewbox(NSVGparser* p, const char* units)
 
 	// Guess image size if not set completely.
 	nsvg__imageBounds(p, bounds);
+	tx = -p->viewMinx;
+	ty = -p->viewMiny;
 
 	if (p->viewWidth == 0) {
+		tx = -bounds[0];
 		if (p->image->width > 0) {
 			p->viewWidth = p->image->width;
 		} else {
@@ -2785,6 +2793,7 @@ static void nsvg__scaleToViewbox(NSVGparser* p, const char* units)
 		}
 	}
 	if (p->viewHeight == 0) {
+		ty = -bounds[1];
 		if (p->image->height > 0) {
 			p->viewHeight = p->image->height;
 		} else {
@@ -2797,8 +2806,6 @@ static void nsvg__scaleToViewbox(NSVGparser* p, const char* units)
 	if (p->image->height == 0)
 		p->image->height = p->viewHeight;
 
-	tx = -p->viewMinx;
-	ty = -p->viewMiny;
 	sx = p->viewWidth > 0 ? p->image->width / p->viewWidth : 0;
 	sy = p->viewHeight > 0 ? p->image->height / p->viewHeight : 0;
 	// Unit scaling
