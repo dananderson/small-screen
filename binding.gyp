@@ -98,7 +98,7 @@
         "src/small-screen-lib/StbFontSample.cc",
         "src/small-screen-lib/FontStore.cc",
         "src/small-screen-lib/LoadImageAsyncTask.cc",
-        "src/small-screen-lib/SmallScreenLib.cc"
+        "src/small-screen-lib/Init.cc"
       ],
       "libraries": [
         "<(PRODUCT_DIR)/common.a"
