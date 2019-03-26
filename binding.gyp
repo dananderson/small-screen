@@ -57,7 +57,7 @@
       "target_name": "small-screen-lib",
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
-        "deps/napi-thread-safe-callback",
+        "<!@(node -p \"require('napi-thread-safe-callback').include\")",
         "deps/concurrentqueue",
         "deps/nanosvg",
         "deps/stb",
