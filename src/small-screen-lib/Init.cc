@@ -12,6 +12,9 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <YogaValue.h>
+#include <YogaNode.h>
+#include <YogaGlobal.h>
 
 #include "TextureFormat.h"
 #include "TextLayout.h"
@@ -68,8 +71,6 @@ void JS_ImageRelease(const CallbackInfo& info) {
     }
 }
 
-
-
 void JS_ImageJoinThreadPool(const CallbackInfo& info) {
     AsyncTaskQueue::Close();
 }
@@ -78,6 +79,13 @@ Object Init(Env env, Object exports) {
     TextLayout::Init(env, exports);
     CapInsets::Init(env, exports);
     FontStore::Init(env, exports);
+
+    auto yoga = Object::New(env);
+
+    exports["Yoga"] = yoga;
+    Yoga::Value::Init(env, yoga);
+    Yoga::Node::Init(env, yoga);
+    Yoga::Init(env, yoga);
 
     exports["ImageSetThreadPoolSize"] = Function::New(env, JS_SetThreadPoolSize, "ImageSetThreadPoolSize");
     exports["ImageGetThreadPoolSize"] = Function::New(env, JS_GetThreadPoolSize, "ImageGetThreadPoolSize");

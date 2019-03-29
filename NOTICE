@@ -2,6 +2,7 @@ In addition to the dependencies listed in package.json, Small Screen directly in
 
 - BezierEasing (https://github.com/gre/bezier-easing), under the MIT License.
 - React Native (https://github.com/facebook/react-native), under the MIT License.
+- Yoga Layout (https://github.com/facebook/yoga), under the MIT License.
 
 - moodycamel::ConcurrentQueue, under Simplified BSD License (deps/concurrentqueue/LICENSE.md).
 - Nano SVG (https://github.com/memononen/nanosvg), under the zlib License (deps/nanosvg/LICENSE.txt).

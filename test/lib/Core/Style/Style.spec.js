@@ -7,7 +7,7 @@
 import chai, { assert } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import { Style, HINT_HAS_BORDER_RADIUS } from '../../../../lib/Core/Style/Style'
-import Yoga from 'yoga-layout'
+import { UNIT_PERCENT, UNIT_POINT } from '../../../../lib/Core/Util/Yoga'
 
 chai.use(chaiAsPromised)
 
@@ -57,10 +57,10 @@ describe('Style()', () => {
         objectPositionY: 5
       })
 
-      assert.equal(style.objectPositionX.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionX.unit, UNIT_POINT)
       assert.equal(style.objectPositionX.value, 3)
 
-      assert.equal(style.objectPositionY.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionY.unit, UNIT_POINT)
       assert.equal(style.objectPositionY.value, 5)
     })
     it('should set objectPosition with string number', () => {
@@ -69,10 +69,10 @@ describe('Style()', () => {
         objectPositionY: '5'
       })
 
-      assert.equal(style.objectPositionX.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionX.unit, UNIT_POINT)
       assert.equal(style.objectPositionX.value, 3)
 
-      assert.equal(style.objectPositionY.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionY.unit, UNIT_POINT)
       assert.equal(style.objectPositionY.value, 5)
 
       style = Style({
@@ -80,10 +80,10 @@ describe('Style()', () => {
         objectPositionY: '5.5'
       })
 
-      assert.equal(style.objectPositionX.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionX.unit, UNIT_POINT)
       assert.approximately(style.objectPositionX.value, 3.3, 0.01)
 
-      assert.equal(style.objectPositionY.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionY.unit, UNIT_POINT)
       assert.approximately(style.objectPositionY.value, 5.5, 0.01)
     })
     it('should set objectPosition with string %', () => {
@@ -92,10 +92,10 @@ describe('Style()', () => {
         objectPositionY: '50%'
       })
 
-      assert.equal(style.objectPositionX.unit, Yoga.UNIT_PERCENT)
+      assert.equal(style.objectPositionX.unit, UNIT_PERCENT)
       assert.approximately(style.objectPositionX.value, 0.30, 0.01)
 
-      assert.equal(style.objectPositionY.unit, Yoga.UNIT_PERCENT)
+      assert.equal(style.objectPositionY.unit, UNIT_PERCENT)
       assert.approximately(style.objectPositionY.value, 0.50, 0.01)
     })
     it('should set objectPosition with left', () => {
@@ -103,7 +103,7 @@ describe('Style()', () => {
         objectPositionX: 'left'
       })
 
-      assert.equal(style.objectPositionX.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionX.unit, UNIT_POINT)
       assert.equal(style.objectPositionX.value, 0)
     })
     it('should set objectPosition with right', () => {
@@ -118,7 +118,7 @@ describe('Style()', () => {
         objectPositionY: 'top'
       })
 
-      assert.equal(style.objectPositionY.unit, Yoga.UNIT_POINT)
+      assert.equal(style.objectPositionY.unit, UNIT_POINT)
       assert.equal(style.objectPositionY.value, 0)
     })
     it('should set objectPosition with bottom', () => {

@@ -15,7 +15,8 @@
         "deps/nanosvg",
         "deps/stb",
         "deps/utf8_v2_3_4",
-        "src/include"
+        "src/include",
+        "src/common/yoga"
       ],
       "cflags!": [
         "-fno-exceptions"
@@ -50,7 +51,21 @@
         "src/common/FontSample.cc",
         "src/common/TextLayout.cc",
         "src/common/CapInsets.cc",
-        "src/common/nanosvg.cc"
+        "src/common/nanosvg.cc",
+        "src/common/yoga/log.cpp",
+        "src/common/yoga/Utils.cpp",
+        "src/common/yoga/YGConfig.cpp",
+        "src/common/yoga/YGEnums.cpp",
+        "src/common/yoga/YGLayout.cpp",
+        "src/common/yoga/YGMarker.cpp",
+        "src/common/yoga/YGNode.cpp",
+        "src/common/yoga/YGNodePrint.cpp",
+        "src/common/yoga/YGStyle.cpp",
+        "src/common/yoga/YGValue.cpp",
+        "src/common/yoga/Yoga.cpp",
+        "src/common/YogaValue.cc",
+        "src/common/YogaNode.cc",
+        "src/common/YogaGlobal.cc",
       ]
     },
     {
@@ -62,7 +77,8 @@
         "deps/nanosvg",
         "deps/stb",
         "deps/utf8_v2_3_4",
-        "src/include"
+        "src/include",
+        "src/common/yoga"
       ],
       "cflags!": [
         "-fno-exceptions"

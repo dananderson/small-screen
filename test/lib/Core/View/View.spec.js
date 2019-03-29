@@ -5,9 +5,9 @@
  */
 
 import { assert } from 'chai'
-import Yoga from 'yoga-layout'
 import { Style } from '../../../../lib/Core/Style'
 import { View } from '../../../../lib/Core/Views/View'
+import { getInstanceCount } from '../../../../lib/Core/Util/Yoga'
 
 describe('View Test', () => {
   const app = {
@@ -41,33 +41,33 @@ describe('View Test', () => {
   })
   describe('destroy()', () => {
     it('should release views', () => {
-      assert.equal(Yoga.getInstanceCount(), baselineViewCount)
+      assert.equal(getInstanceCount(), baselineViewCount)
 
       view = new View(undefined, app)
 
-      assert.equal(Yoga.getInstanceCount(), baselineViewCount + 1)
+      assert.equal(getInstanceCount(), baselineViewCount + 1)
       assert.exists(view.node)
 
       view.destroy()
 
-      assert.equal(Yoga.getInstanceCount(), baselineViewCount)
+      assert.equal(getInstanceCount(), baselineViewCount)
       assert.isUndefined(view.node)
     })
     it('should release views recursively', () => {
-      assert.equal(Yoga.getInstanceCount(), baselineViewCount)
+      assert.equal(getInstanceCount(), baselineViewCount)
 
       view = new View(undefined, app)
       child = new View(undefined, app)
 
       view.appendChild(child)
 
-      assert.equal(Yoga.getInstanceCount(), baselineViewCount + 2)
+      assert.equal(getInstanceCount(), baselineViewCount + 2)
       assert.exists(view.node)
       assert.exists(child.node)
 
       view.destroy()
 
-      assert.equal(Yoga.getInstanceCount(), baselineViewCount)
+      assert.equal(getInstanceCount(), baselineViewCount)
       assert.isUndefined(view.node)
       assert.isUndefined(child.node)
     })
@@ -80,7 +80,7 @@ describe('View Test', () => {
   beforeEach(() => {
     // if application initialized, it might have created a View for root. do this tests view counts based on the start
     // of each test to avoid conflicting with application's active Views.
-    baselineViewCount = Yoga.getInstanceCount()
+    baselineViewCount = getInstanceCount()
   })
   afterEach(() => {
     child && child.destroy()
