@@ -93,12 +93,16 @@ public:
     VALUE_METHOD(getPadding);
 
     VOID_METHOD(destroy);
+    VOID_METHOD(resetStyle);
 
     VALUE_METHOD(getParent);
     VALUE_METHOD(getChild);
     VALUE_METHOD(getChildCount);
     VOID_METHOD(insertChild);
+    VOID_METHOD(pushChild);
+    VOID_METHOD(remove);
     VOID_METHOD(removeChild);
+    VOID_METHOD(sendToBack);
 
     VOID_METHOD(setMeasureFunc);
     VOID_METHOD(unsetMeasureFunc);
@@ -121,4 +125,4 @@ private:
     Napi::FunctionReference measureFunc;
 };
 
-};
+}

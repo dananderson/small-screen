@@ -5,171 +5,19 @@
  */
 
 import { assert } from 'chai'
+import sinon from 'sinon'
 import {
-  UNIT_POINT,
   Node,
-  Value,
-  UNIT_PERCENT,
   UNIT_AUTO,
-  EDGE_LEFT,
-  DIRECTION_LTR, EDGE_ALL
+  DIRECTION_LTR,
+  EDGE_ALL,
+  getInstanceCount
 } from '../../../../lib/Core/Util/Yoga'
-
-const INPUT_POINT_PERCENT = [
-  [ 3, new Value(UNIT_POINT, 3) ],
-  [ '5', new Value(UNIT_POINT, 5) ],
-  [ '44%', new Value(UNIT_PERCENT, 44) ],
-  [ new Value(UNIT_POINT, 6), new Value(UNIT_POINT, 6) ]
-]
-
-const INPUT_POINT_PERCENT_AUTO = [
-  ...INPUT_POINT_PERCENT,
-  [ 'auto', new Value(UNIT_AUTO) ]
-]
-
-const INVALID_INPUT_POINT_PERCENT_AUTO = [
-  '%',
-  'xxx',
-  'x%'
-]
-
-const INVALID_INPUT_POINT_PERCENT = [
-  ...INVALID_INPUT_POINT_PERCENT_AUTO,
-  'auto'
-]
 
 describe('Node', () => {
   let node
-  describe('setFlexBasis', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT.forEach(([ input, expectedValue ]) => {
-        node.setFlexBasis(input)
-        assertValue(node.getFlexBasis(), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT.forEach(input => {
-        assert.throws(() => node.setFlexBasis(input))
-      })
-    })
-  })
-  describe('setWidth', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT_AUTO.forEach(([ input, expectedValue ]) => {
-        node.setWidth(input)
-        assertValue(node.getWidth(), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT_AUTO.forEach(input => {
-        assert.throws(() => node.setWidth(input))
-      })
-    })
-  })
-  describe('setHeight', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT_AUTO.forEach(([ input, expectedValue ]) => {
-        node.setHeight(input)
-        assertValue(node.getHeight(), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT_AUTO.forEach(input => {
-        assert.throws(() => node.setHeight(input))
-      })
-    })
-  })
-  describe('setMinWidth', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT.forEach(([ input, expectedValue ]) => {
-        node.setMinWidth(input)
-        assertValue(node.getMinWidth(), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT.forEach(input => {
-        assert.throws(() => node.setMinWidth(input))
-      })
-    })
-  })
-  describe('setMinHeight', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT.forEach(([ input, expectedValue ]) => {
-        node.setMinHeight(input)
-        assertValue(node.getMinHeight(), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT.forEach(input => {
-        assert.throws(() => node.setMinHeight(input))
-      })
-    })
-  })
-  describe('setMaxWidth', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT.forEach(([ input, expectedValue ]) => {
-        node.setMaxWidth(input)
-        assertValue(node.getMaxWidth(), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT.forEach(input => {
-        assert.throws(() => node.setMaxWidth(input))
-      })
-    })
-  })
-  describe('setMaxHeight', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT.forEach(([ input, expectedValue ]) => {
-        node.setMaxHeight(input)
-        assertValue(node.getMaxHeight(), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT.forEach(input => {
-        assert.throws(() => node.setMaxHeight(input))
-      })
-    })
-  })
-  describe('setPosition', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT.forEach(([ input, expectedValue ]) => {
-        node.setPosition(EDGE_LEFT, input)
-        assertValue(node.getPosition(EDGE_LEFT), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT.forEach(input => {
-        assert.throws(() => node.setPosition(EDGE_LEFT, input))
-      })
-    })
-  })
-  describe('setPadding', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT.forEach(([ input, expectedValue ]) => {
-        node.setPadding(EDGE_LEFT, input)
-        assertValue(node.getPadding(EDGE_LEFT), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT.forEach(input => {
-        assert.throws(() => node.setPadding(EDGE_LEFT, input))
-      })
-    })
-  })
-  describe('setMargin', () => {
-    it('should set Value with valid inputs', () => {
-      INPUT_POINT_PERCENT_AUTO.forEach(([ input, expectedValue ]) => {
-        node.setMargin(EDGE_LEFT, input)
-        assertValue(node.getMargin(EDGE_LEFT), expectedValue)
-      })
-    })
-    it('should throw Error for invalid input', () => {
-      INVALID_INPUT_POINT_PERCENT_AUTO.forEach(input => {
-        assert.throws(() => node.setMargin(EDGE_LEFT, input))
-      })
-    })
-  })
+  let childA
+  let childB
   describe('getBorderBox()', () => {
     it('should get the x, y, w and h of the border box', () => {
       assert.sameOrderedMembers(layout(node).getBorderBox(), [ 5, 5, 100, 50 ])
@@ -195,12 +43,123 @@ describe('Node', () => {
       assert.sameOrderedMembers(layout(node).getComputedBorder(), [ 1, 1, 1, 1 ])
     })
   })
+  describe('resetStyle()', () => {
+    it('should reset style', () => {
+      assert.equal(node.getWidth().unit, UNIT_AUTO)
+      assert.isFalse(node.isDirty())
+
+      layout(node)
+
+      assert.isFalse(node.isDirty())
+      assert.equal(node.getWidth().value, 100)
+
+      node.resetStyle()
+
+      assert.isTrue(node.isDirty())
+      assert.equal(node.getWidth().unit, UNIT_AUTO)
+    })
+  })
+  describe('destroy()', () => {
+    it('should be idempotent', () => {
+      node.destroy()
+      node.destroy()
+    })
+    it('should remove itself from parent on destroy', () => {
+      node.insertChild(childA, 0)
+      assert.equal(node.getChildCount(), 1)
+      childA.destroy()
+      assert.equal(node.getChildCount(), 0)
+    })
+    it('should throw error if node has children', () => {
+      node.insertChild(childA, 0)
+      assert.throws(() => node.destroy())
+    })
+  })
+  describe('remove()', () => {
+    it('should remove node from it\'s parent', () => {
+      node.pushChild(childA)
+      assert.equal(node.getChildCount(), 1)
+      childA.remove()
+      assert.equal(node.getChildCount(), 0)
+      assert.isUndefined(childA.getParent())
+    })
+  })
+  describe('pushChild()', () => {
+    it('should add child to end of children list', () => {
+      node.pushChild(childA)
+      node.pushChild(childB)
+
+      assert.equal(node.getChild(0), childA)
+      assert.equal(node.getChild(1), childB)
+    })
+  })
+  describe('sendToBack()', () => {
+    it('should move child to end of children list', () => {
+      node.pushChild(childA)
+      node.pushChild(childB)
+
+      childA.sendToBack()
+
+      assert.equal(node.getChild(0), childB)
+      assert.equal(node.getChild(1), childA)
+    })
+  })
+  describe('getParent()', () => {
+    it('should get the parent node', () => {
+      node.insertChild(childA, node.getChildCount())
+      assert.equal(childA.getParent(), node)
+    })
+    it('should return undefined for no parent', () => {
+      assert.isUndefined(childA.getParent())
+    })
+  })
+  describe('markDirty()', () => {
+    it('should move child to end of children list', () => {
+      assert.isFalse(node.isDirty())
+      node.setMeasureFunc(() => {}) // required for mark dirty
+      node.markDirty()
+      assert.isTrue(node.isDirty())
+    })
+  })
+  describe('setMeasureFunc()', () => {
+    it('should call measure func on layout', () => {
+      const measureFunc = sinon.spy(() => ({ width: 50, height: 50 }))
+
+      node.pushChild(childA)
+      childA.setMeasureFunc(measureFunc)
+      childA.markDirty()
+      node.calculateLayout(200, 200, DIRECTION_LTR)
+
+      sinon.assert.calledOnce(measureFunc)
+      assert.sameOrderedMembers(node.getBorderBox(), [ 0, 0, 200, 200 ])
+      assert.sameOrderedMembers(childA.getBorderBox(), [ 0, 0, 200, 50 ])
+    })
+    it('should layout with no measure func', () => {
+      node.pushChild(childA)
+      node.calculateLayout(200, 200, DIRECTION_LTR)
+
+      assert.sameOrderedMembers(node.getBorderBox(), [ 0, 0, 200, 200 ])
+      assert.sameOrderedMembers(childA.getBorderBox(), [ 0, 0, 200, 0 ])
+    })
+    it('should unset measure func when no parameters passed', () => {
+      node.setMeasureFunc(() => {})
+      node.setMeasureFunc()
+    })
+    it('should unset measure func', () => {
+      node.setMeasureFunc(() => {})
+      node.unsetMeasureFunc()
+    })
+  })
   beforeEach(() => {
     node = Node.create()
+    childA = Node.create()
+    childB = Node.create()
   })
   afterEach(() => {
-    node && node.destroy()
-    node = undefined
+    childB.destroy()
+    childA.destroy()
+    node.destroy()
+    assert.equal(getInstanceCount(), 0)
   })
 })
 
@@ -214,9 +173,4 @@ function layout (node) {
   node.calculateLayout(200, 200, DIRECTION_LTR)
 
   return node
-}
-
-function assertValue (value, expectedValue) {
-  assert.equal(value.unit, expectedValue.unit)
-  assert.equal(value.value, expectedValue.value)
 }

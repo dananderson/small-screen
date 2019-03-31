@@ -23,4 +23,4 @@ private:
     static Napi::FunctionReference constructor;
 };
 
-};
+}

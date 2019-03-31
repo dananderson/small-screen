@@ -6,6 +6,8 @@
 
 #include "YogaNode.h"
 #include "YogaValue.h"
+#include <YGNode.h>
+#include <YGStyle.h>
 #include <map>
 
 using namespace Napi;
@@ -33,7 +35,9 @@ static std::map<YGNodeRef, ObjectReference> sNodes;
 }
 
 #define SET_ENUM_IMPL(method, ygMethod, type) void Node::method(const CallbackInfo& info) { \
-    ygMethod(this->ygNode, static_cast<type>(info[0].As<Number>().Int32Value())); \
+    if (info[0].IsNumber()) { \
+        ygMethod(this->ygNode, static_cast<type>(info[0].As<Number>().Int32Value())); \
+    } \
 }
 
 #define SET_DOUBLE_IMPL(method, ygMethod) void Node::method(const CallbackInfo& info) { \
@@ -129,10 +133,14 @@ Object Node::Init(Napi::Env env, Object exports) {
         INSTANCE_METHOD(getBorder),
         INSTANCE_METHOD(getPadding),
         INSTANCE_METHOD(destroy),
+        INSTANCE_METHOD(resetStyle),
         INSTANCE_METHOD(getParent),
         INSTANCE_METHOD(getChild),
         INSTANCE_METHOD(getChildCount),
         INSTANCE_METHOD(insertChild),
+        INSTANCE_METHOD(pushChild),
+        INSTANCE_METHOD(sendToBack),
+        INSTANCE_METHOD(remove),
         INSTANCE_METHOD(removeChild),
         INSTANCE_METHOD(setMeasureFunc),
         INSTANCE_METHOD(unsetMeasureFunc),
@@ -155,21 +163,41 @@ Object Node::Init(Napi::Env env, Object exports) {
 }
 
 void Node::destroy(const CallbackInfo& info) {
-    if (this->ygNode != nullptr) {
-        auto it = sNodes.find(this->ygNode);
+    if (this->ygNode == nullptr) {
+        return;
+    }
 
-        if (it != sNodes.end()) {
-            YGNodeFree(this->ygNode);
-            sNodes.erase(this->ygNode);
-            this->ygNode = nullptr;
+    auto it = sNodes.find(this->ygNode);
+
+    if (it != sNodes.end()) {
+        if (YGNodeGetChildCount(this->ygNode)) {
+            throw Error::New(info.Env(), "Cannot destroy Node with children.");
         }
 
+        auto parent = YGNodeGetParent(this->ygNode);
+
+        if (parent) {
+            YGNodeRemoveChild(parent, this->ygNode);
+        }
+
+        YGNodeFree(this->ygNode);
+        sNodes.erase(this->ygNode);
+    }
+
+    this->ygNode = nullptr;
+    this->measureFunc.Reset();
+}
+
+void Node::resetStyle(const CallbackInfo& info) {
+    if (this->ygNode) {
+        this->ygNode->setStyle(YGStyle{});
         this->measureFunc.Reset();
+        this->ygNode->markDirtyAndPropogate();
     }
 }
 
 Napi::Value Node::getParent(const CallbackInfo& info) {
-    auto it = sNodes.find(this->ygNode);
+    auto it = sNodes.find(YGNodeGetParent(this->ygNode));
 
     if (it != sNodes.end()) {
         return it->second.Value();
@@ -209,6 +237,34 @@ void Node::removeChild(const CallbackInfo& info) {
     }
 }
 
+void Node::pushChild(const CallbackInfo& info) {
+    Node *child = ObjectWrap::Unwrap(info[0].As<Object>());
+    auto it = sNodes.find(child->ygNode);
+
+    if (it != sNodes.end()) {
+        YGNodeInsertChild(this->ygNode, child->ygNode, YGNodeGetChildCount(this->ygNode));
+    }
+}
+
+void Node::remove(const CallbackInfo& info) {
+    YGNodeRef parent = YGNodeGetParent(this->ygNode);
+
+    if (parent) {
+        YGNodeRemoveChild(parent, this->ygNode);
+    }
+}
+
+void Node::sendToBack(const CallbackInfo& info) {
+    YGNodeRef parent = YGNodeGetParent(this->ygNode);
+
+    if (!parent) {
+        return;
+    }
+
+    YGNodeRemoveChild(parent, this->ygNode);
+    YGNodeInsertChild(parent, this->ygNode, YGNodeGetChildCount(parent));
+}
+
 void Node::setMeasureFunc(const Napi::CallbackInfo& info) {
     if (!info[0].IsFunction()) {
         this->unsetMeasureFunc(info);
@@ -242,9 +298,11 @@ void Node::setMeasureFunc(const Napi::CallbackInfo& info) {
 
         if (result.IsObject()) {
             auto obj = result.As<Object>();
+            auto width = obj.Get("width");
+            auto height = obj.Get("height");
 
-            size.width = obj.Has("width") ? obj.Get("width").As<Number>().FloatValue() : 0.f;
-            size.height = obj.Has("height") ? obj.Get("height").As<Number>().FloatValue() : 0.f;
+            size.width = width.IsNumber() ? width.As<Number>() : 0.f;
+            size.height = height.IsNumber() ? height.As<Number>() : 0.f;
         }
 
         return size;

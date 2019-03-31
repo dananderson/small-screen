@@ -277,11 +277,11 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
             }
 
             RenderCopy(this->renderer,
-                           texture,
-                           reinterpret_cast<const SDL_Rect *>(iter->GetSourceRect()),
-                           destRect,
-                           rotationAngleValue,
-                           &rotationPoint);
+                       texture,
+                       reinterpret_cast<const SDL_Rect *>(iter->GetSourceRect()),
+                       destRect,
+                       rotationAngleValue,
+                       &rotationPoint);
         } else if (iter->IsNewLine()) {
             dx = textLayout->GetLineAlignmentOffset(line++, textAlign);
             dy += lineHeight;

@@ -13,4 +13,4 @@ namespace Yoga {
     Napi::Object Init(Napi::Env env, Napi::Object exports);
 
     Napi::Value GetInstanceCount(const Napi::CallbackInfo& info);
-};
+}
