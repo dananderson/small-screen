@@ -17,9 +17,8 @@
 using namespace Napi;
 using namespace std::chrono;
 
-inline void SetTextureTintColor(SDL_Texture *texture, uint32_t color, uint8_t opacity);
-inline void SetRenderDrawColor(SDL_Renderer *renderer, uint32_t color, uint8_t opacity);
-inline uint8_t GetAlpha(const uint32_t color);
+inline void SetTextureTintColor(SDL_Texture *texture, const int64_t& color, uint8_t opacity);
+inline void SetRenderDrawColor(SDL_Renderer *renderer, const int64_t& color, uint8_t opacity);
 inline void RenderCopy(SDL_Renderer *renderer, SDL_Texture *texture, const SDL_Rect *srcrect, const SDL_Rect * dstrect,
     Value rotationAngle, const SDL_Point *rotationPoint);
 
@@ -29,9 +28,11 @@ static const int64_t COLOR32 = 0xFFFFFFFF;
 Object SDLRenderingContext::Init(Napi::Env env, Object exports) {
   Function func = DefineClass(env, "SDLRenderingContext", {
     InstanceMethod("pushStyle", &SDLRenderingContext::PushStyle),
+    InstanceMethod("setStyle", &SDLRenderingContext::SetStyle),
     InstanceMethod("popStyle", &SDLRenderingContext::PopStyle),
     InstanceMethod("_reset", &SDLRenderingContext::Reset),
     InstanceMethod("pushClipRect", &SDLRenderingContext::PushClipRect),
+    InstanceMethod("setClipRect", &SDLRenderingContext::PushClipRect),
     InstanceMethod("popClipRect", &SDLRenderingContext::PopClipRect),
     InstanceMethod("blit", &SDLRenderingContext::Blit),
     InstanceMethod("shift", &SDLRenderingContext::Shift),
@@ -54,8 +55,7 @@ Object SDLRenderingContext::Init(Napi::Env env, Object exports) {
 
 SDLRenderingContext::SDLRenderingContext(const CallbackInfo& info)
     : ObjectWrap<SDLRenderingContext>(info), wx(0), wy(0), opacity(255),
-      hasColorAlpha(false), hasBackgroundColorAlpha(false), hasBorderColorAlpha(false), hasTintColorAlpha(false),
-      color(0), backgroundColor(0), borderColor(0), tintColor(0xFFFFFF) {
+      color(-1), backgroundColor(-1), borderColor(-1), tintColor(-1) {
     this->client = ObjectWrap<SDLClient>::Unwrap(info[0].As<Object>());
     this->renderer = client->GetRenderer();
 }
@@ -67,29 +67,21 @@ void SDLRenderingContext::Destroy(const Napi::CallbackInfo& info) {
 void SDLRenderingContext::PushStyle(const CallbackInfo& info) {
     this->opacityStack.push_back(this->opacity);
 
-    if (info[0].IsNumber()) {
-        auto newOpacity = static_cast<uint8_t>(info[0].As<Number>().Int32Value());
+    this->SetStyle(info);
+}
+
+void SDLRenderingContext::SetStyle(const CallbackInfo& info) {
+    this->style.Reset(info[0].As<Object>(), 1);
+
+    auto opacityValue = this->style.Get("opacity");
+
+    if (opacityValue.IsNumber()) {
+        auto newOpacity = static_cast<uint8_t>(opacityValue.As<Number>().Int32Value());
 
         this->opacity = static_cast<uint8_t>(this->opacity * newOpacity / 255.f);
     }
 
-    int64_t value;
-
-    value = info[1].As<Number>().Int64Value();
-    this->hasColorAlpha = value > COLOR32;
-    this->color = static_cast<uint32_t>(value);
-
-    value = info[2].As<Number>().Int64Value();
-    this->hasBackgroundColorAlpha = value > COLOR32;
-    this->backgroundColor = value;
-
-    value = info[3].As<Number>().Int64Value();
-    this->hasBorderColorAlpha = value > COLOR32;
-    this->borderColor = value;
-
-    value = info[4].As<Number>().Int64Value();
-    this->hasTintColorAlpha = value > COLOR32;
-    this->tintColor = value;
+    this->color = this->backgroundColor = this->borderColor = this->tintColor = -1;
 }
 
 void SDLRenderingContext::PopStyle(const CallbackInfo& info) {
@@ -97,6 +89,7 @@ void SDLRenderingContext::PopStyle(const CallbackInfo& info) {
         throw Error::New(info.Env(), "SDLRenderingContext.ClearStyle(): Opacity stack should not be empty!");
     }
 
+    this->style.Reset();
     this->opacity = this->opacityStack.back();
     this->opacityStack.pop_back();
 }
@@ -104,10 +97,9 @@ void SDLRenderingContext::PopStyle(const CallbackInfo& info) {
 Value SDLRenderingContext::Reset(const CallbackInfo& info) {
     this->opacity = 255;
     this->wx = this->wy = 0;
-    this->hasColorAlpha = this->hasBackgroundColorAlpha = this->hasBorderColorAlpha = this->hasTintColorAlpha = false;
-    this->color = this->backgroundColor = this->borderColor = 0;
-    this->tintColor = 0xFFFFFF;
-
+    this->color = this->backgroundColor = this->borderColor = this->tintColor = -1;
+    this->style.Reset();
+    
     clipRectStack.clear();
     opacityStack.clear();
     positionStack.clear();
@@ -119,6 +111,14 @@ Value SDLRenderingContext::Reset(const CallbackInfo& info) {
 }
 
 void SDLRenderingContext::PushClipRect(const CallbackInfo& info) {
+    this->SetClipRect(info, true);
+}
+
+void SDLRenderingContext::SetClipRect(const CallbackInfo& info) {
+    this->SetClipRect(info, false);
+}
+
+void SDLRenderingContext::SetClipRect(const CallbackInfo& info, bool push) {
     SDL_Rect rect = {
         info[0].As<Number>().Int32Value() + this->wx,
         info[1].As<Number>().Int32Value() + this->wy,
@@ -136,7 +136,10 @@ void SDLRenderingContext::PushClipRect(const CallbackInfo& info) {
         clipRect = &rect;
     }
 
-    this->clipRectStack.push_back(*clipRect);
+    if (push) {
+        this->clipRectStack.push_back(*clipRect);
+    }
+    
     SDL_RenderSetClipRect(this->renderer, clipRect);
 }
 
@@ -178,7 +181,7 @@ void SDLRenderingContext::FillRect(const CallbackInfo& info) {
         info[3].As<Number>().Int32Value()
     };
 
-    SetRenderDrawColor(this->renderer, this->backgroundColor, this->hasBackgroundColorAlpha ? GetAlpha(this->backgroundColor) : this->opacity);
+    SetRenderDrawColor(this->renderer, this->GetBackgroundColor(), this->opacity);
     SDL_RenderFillRect(this->renderer, &rect);
 }
 
@@ -230,7 +233,7 @@ void SDLRenderingContext::Border(const CallbackInfo& info) {
     }
 
     if (count > 0) {
-        SetRenderDrawColor(this->renderer, this->borderColor, this->hasBorderColorAlpha ? GetAlpha(this->borderColor) : this->opacity);
+        SetRenderDrawColor(this->renderer, this->GetBorderColor(), this->opacity);
         SDL_RenderFillRects(this->renderer, &rect[0], count);
     }
 }
@@ -263,7 +266,7 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
     const SDL_Rect *destRect;
     SDL_Point rotationPoint = { 0, 0 };
 
-    SetTextureTintColor(texture, this->color, this->hasColorAlpha ? GetAlpha(this->color) : this->opacity);
+    SetTextureTintColor(texture, this->GetColor(), this->opacity);
 
     // RenderCopy for each glyph is SLOW. Since SDL does not have a batch API for textured quads, OpenGL will have to
     // be used directly to improve performance.
@@ -302,7 +305,7 @@ void SDLRenderingContext::Blit(const CallbackInfo& info) {
     auto width = info[7].As<Number>().Int32Value();
     auto height = info[8].As<Number>().Int32Value();
 
-    SetTextureTintColor(texture, this->tintColor, this->hasTintColorAlpha ? GetAlpha(this->tintColor) : this->opacity);
+    SetTextureTintColor(texture, this->GetTintColor(), this->opacity);
 
     SDL_Point rotationPoint = { rotationPointX, rotationPointY };
 
@@ -331,7 +334,7 @@ void SDLRenderingContext::FillRectRounded(const Napi::CallbackInfo& info) {
     auto texture = this->client->GetEffectTexture(roundedRectangleEffect);
 
     if (texture) {
-        SetTextureTintColor(texture, this->backgroundColor, this->hasBackgroundColorAlpha ? GetAlpha(this->backgroundColor) : this->opacity);
+        SetTextureTintColor(texture, this->GetBackgroundColor(), this->opacity);
         this->BlitCapInsets(
             texture,
             roundedRectangleEffect.GetCapInsets(),
@@ -358,7 +361,7 @@ void SDLRenderingContext::BorderRounded(const Napi::CallbackInfo& info) {
     auto texture = this->client->GetEffectTexture(roundedRectangleEffect);
 
     if (texture != nullptr) {
-        SetTextureTintColor(texture, this->borderColor, this->hasBorderColorAlpha ? GetAlpha(this->borderColor) : this->opacity);
+        SetTextureTintColor(texture, this->GetBorderColor(), this->opacity);
         this->BlitCapInsets(
             texture,
             roundedRectangleEffect.GetCapInsets(),
@@ -372,14 +375,14 @@ void SDLRenderingContext::BorderRounded(const Napi::CallbackInfo& info) {
 }
 
 void SDLRenderingContext::BlitCapInsets(SDL_Texture *texture, const Rectangle& capInsets,
-        int x, int y, int width, int height, Napi::Value rotationAngleValue, SDL_Point *rotationPoint) {
+        int32_t x, int32_t y, int32_t width, int32_t height, Napi::Value rotationAngleValue, SDL_Point *rotationPoint) {
     auto left = capInsets.left;
     auto top = capInsets.top;
     auto right = capInsets.right;
     auto bottom = capInsets.bottom;
 
-    int textureWidth;
-    int textureHeight;
+    int32_t textureWidth;
+    int32_t textureHeight;
 
     // TODO: cache src rects and dest rects in CapInsets class as a "mesh", similar to how text is drawn.
     SDL_Rect srcRect;
@@ -502,28 +505,36 @@ void SDLRenderingContext::BlitCapInsets(SDL_Texture *texture, const Rectangle& c
     RenderCopy(this->renderer, texture, &srcRect, &destRect, rotationAngleValue, rotationPoint);
 }
 
-inline void SetTextureTintColor(SDL_Texture *texture, uint32_t color, uint8_t opacity) {
+inline void SetTextureTintColor(SDL_Texture *texture, const int64_t& color, uint8_t opacity) {
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 
     if (IsBigEndian()) {
         SDL_SetTextureColorMod(texture, (color & 0xFF00) >> 8, (color & 0xFF0000) >> 16, (color & 0xFF000000) >> 24);
-        SDL_SetTextureAlphaMod(texture, opacity);
+        SDL_SetTextureAlphaMod(texture, color > COLOR32 ? static_cast<uint8_t>(color & 0xFF) : opacity);
     } else {
         SDL_SetTextureColorMod(texture, (color & 0xFF0000) >> 16, (color & 0xFF00) >> 8, color & 0xFF);
-        SDL_SetTextureAlphaMod(texture, opacity);
+        SDL_SetTextureAlphaMod(texture, color > COLOR32 ? static_cast<uint8_t>((color & 0xFF000000) >> 24) : opacity);
     }
 }
 
-inline void SetRenderDrawColor(SDL_Renderer *renderer, uint32_t color, uint8_t opacity) {
+inline void SetRenderDrawColor(SDL_Renderer *renderer, const int64_t& color, uint8_t opacity) {
     if (IsBigEndian()) {
-        SDL_SetRenderDrawColor(renderer, (color & 0xFF00) >> 8, (color & 0xFF0000) >> 16, (color & 0xFF000000) >> 24, opacity);
+        SDL_SetRenderDrawColor(
+            renderer,
+            (color & 0xFF00) >> 8,
+            (color & 0xFF0000) >> 16,
+            (color & 0xFF000000) >> 24,
+            color > COLOR32 ? static_cast<uint8_t>(color & 0xFF) : opacity
+        );
     } else {
-        SDL_SetRenderDrawColor(renderer, (color & 0xFF0000) >> 16, (color & 0xFF00) >> 8, color & 0xFF, opacity);
+        SDL_SetRenderDrawColor(
+            renderer,
+            (color & 0xFF0000) >> 16,
+            (color & 0xFF00) >> 8,
+            color & 0xFF,
+            color > COLOR32 ? static_cast<uint8_t>((color & 0xFF000000) >> 24) : opacity
+        );
     }
-}
-
-inline uint8_t GetAlpha(const uint32_t color) {
-    return static_cast<uint8_t>(IsBigEndian() ? (color & 0xFF) : ((color & 0xFF000000) >> 24));
 }
 
 inline void RenderCopy(SDL_Renderer *renderer,
