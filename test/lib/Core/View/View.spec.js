@@ -21,19 +21,19 @@ describe('View Test', () => {
 
   describe('constructor', () => {
     it('should set accept props', () => {
-      view = new View({ style: Style({ color: 'blue' }) }, app)
+      view = new View({ style: Style({ color: 'blue' }) }, app, true)
 
       assert.exists(view.props)
       assert.exists(view.style)
     })
     it('should set accept undefined props', () => {
-      view = new View(undefined, app)
+      view = new View(undefined, app, true)
 
       assert.exists(view.props)
       assert.exists(view.style)
     })
     it('should set accept empty style', () => {
-      view = new View({}, app)
+      view = new View({}, app, true)
 
       assert.exists(view.props)
       assert.exists(view.style)
@@ -43,7 +43,7 @@ describe('View Test', () => {
     it('should release views', () => {
       assert.equal(getInstanceCount(), baselineViewCount)
 
-      view = new View(undefined, app)
+      view = new View(undefined, app, true)
 
       assert.equal(getInstanceCount(), baselineViewCount + 1)
       assert.exists(view.node)
@@ -56,8 +56,8 @@ describe('View Test', () => {
     it('should release views recursively', () => {
       assert.equal(getInstanceCount(), baselineViewCount)
 
-      view = new View(undefined, app)
-      child = new View(undefined, app)
+      view = new View(undefined, app, true)
+      child = new View(undefined, app, false)
 
       view.appendChild(child)
 
@@ -72,7 +72,7 @@ describe('View Test', () => {
       assert.isUndefined(child.node)
     })
     it('should handle multiple destroy calls on same view', () => {
-      view = new View(undefined, app)
+      view = new View(undefined, app, true)
       view.destroy()
       view.destroy()
     })
