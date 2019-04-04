@@ -244,14 +244,15 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
     auto y = info[2].As<Number>().Int32Value() + this->wy;
     auto width = info[3].As<Number>().Int32Value();
     auto height = info[4].As<Number>().Int32Value();
-    auto sample = info[5].As<External<FontSample>>().Data();
-    auto texture = info[6].As<External<SDL_Texture>>().Data();
+    auto imageResource = info[5].As<Object>();
+    auto sample = imageResource.Get("font").As<External<FontSample>>().Data();
+    auto texture = imageResource.Get("texture").As<External<SDL_Texture>>().Data();
     // TODO: These args should get to the native layer through pushStyle(). Need to refactor to make style info available to native layer.
-    auto textLayout = ObjectWrap<TextLayout>::Unwrap(info[7].As<Object>());
-    auto textAlign = (TextAlign)(info[8].IsNumber() ? info[8].As<Number>().Int32Value() : TEXT_ALIGN_LEFT);
-    auto maxLines = info[9].IsNumber() ? info[9].As<Number>().Int32Value() : 0;
-    auto ellipsize = info[10].ToBoolean().Value();
-    auto rotationAngleValue = info[11];
+    auto textLayout = ObjectWrap<TextLayout>::Unwrap(info[6].As<Object>());
+    auto textAlign = (TextAlign)(info[7].IsNumber() ? info[7].As<Number>().Int32Value() : TEXT_ALIGN_LEFT);
+    auto maxLines = info[8].IsNumber() ? info[8].As<Number>().Int32Value() : 0;
+    auto ellipsize = info[9].ToBoolean().Value();
+    auto rotationAngleValue = info[10];
     auto rotationPointX = this->wx + width / 2;
     auto rotationPointY = this->wy + height / 2;
 
