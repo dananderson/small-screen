@@ -72,8 +72,6 @@
       "target_name": "small-screen-lib",
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
-        "<!@(node -p \"require('napi-thread-safe-callback').include\")",
-        "deps/concurrentqueue",
         "deps/nanosvg",
         "deps/stb",
         "deps/utf8_v2_3_4",
@@ -108,12 +106,11 @@
         ]
       ],
       "sources": [
-        "src/small-screen-lib/AsyncTaskQueue.cc",
         "src/small-screen-lib/stb.cc",
         "src/small-screen-lib/StbFont.cc",
         "src/small-screen-lib/StbFontSample.cc",
         "src/small-screen-lib/FontStore.cc",
-        "src/small-screen-lib/LoadImageAsyncTask.cc",
+        "src/small-screen-lib/LoadImageAsyncWorker.cc",
         "src/small-screen-lib/Init.cc"
       ],
       "libraries": [
