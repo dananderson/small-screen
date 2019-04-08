@@ -71,17 +71,29 @@ void SDLRenderingContext::PushStyle(const CallbackInfo& info) {
 }
 
 void SDLRenderingContext::SetStyle(const CallbackInfo& info) {
-    this->style.Reset(info[0].As<Object>(), 1);
+    HandleScope scope(info.Env());
+    auto style = info[0].As<Object>();
+    Napi::Value value;
 
-    auto opacityValue = this->style.Get("opacity");
+    value = style.Get("opacity");
 
-    if (opacityValue.IsNumber()) {
-        auto newOpacity = static_cast<uint8_t>(opacityValue.As<Number>().Int32Value());
+    if (value.IsNumber()) {
+        auto newOpacity = static_cast<uint8_t>(value.As<Number>().Int32Value());
 
         this->opacity = static_cast<uint8_t>(this->opacity * newOpacity / 255.f);
     }
 
-    this->color = this->backgroundColor = this->borderColor = this->tintColor = -1;
+    value = style.Get("color");
+    this->color = value.IsNumber() ? value.As<Number>().Int64Value() : 0L;
+
+    value = style.Get("backgroundColor");
+    this->backgroundColor = value.IsNumber() ? value.As<Number>().Int64Value() : 0L;
+
+    value = style.Get("borderColor");
+    this->borderColor = value.IsNumber() ? value.As<Number>().Int64Value() : 0L;
+
+    value = style.Get("tintColor");
+    this->tintColor = value.IsNumber() ? value.As<Number>().Int64Value() : 0xFFFFFFL;
 }
 
 void SDLRenderingContext::PopStyle(const CallbackInfo& info) {
@@ -89,25 +101,21 @@ void SDLRenderingContext::PopStyle(const CallbackInfo& info) {
         throw Error::New(info.Env(), "SDLRenderingContext.ClearStyle(): Opacity stack should not be empty!");
     }
 
-    this->style.Reset();
     this->opacity = this->opacityStack.back();
     this->opacityStack.pop_back();
 }
 
-Value SDLRenderingContext::Reset(const CallbackInfo& info) {
+void SDLRenderingContext::Reset(const CallbackInfo& info) {
     this->opacity = 255;
     this->wx = this->wy = 0;
     this->color = this->backgroundColor = this->borderColor = this->tintColor = -1;
-    this->style.Reset();
-    
+
     clipRectStack.clear();
     opacityStack.clear();
     positionStack.clear();
 
     SDL_RenderSetClipRect(renderer, nullptr);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-    return info.This();
 }
 
 void SDLRenderingContext::PushClipRect(const CallbackInfo& info) {
@@ -181,7 +189,7 @@ void SDLRenderingContext::FillRect(const CallbackInfo& info) {
         info[3].As<Number>().Int32Value()
     };
 
-    SetRenderDrawColor(this->renderer, this->GetBackgroundColor(), this->opacity);
+    SetRenderDrawColor(this->renderer, this->backgroundColor, this->opacity);
     SDL_RenderFillRect(this->renderer, &rect);
 }
 
@@ -233,12 +241,14 @@ void SDLRenderingContext::Border(const CallbackInfo& info) {
     }
 
     if (count > 0) {
-        SetRenderDrawColor(this->renderer, this->GetBorderColor(), this->opacity);
+        SetRenderDrawColor(this->renderer, this->borderColor, this->opacity);
         SDL_RenderFillRects(this->renderer, &rect[0], count);
     }
 }
 
 void SDLRenderingContext::DrawText(const CallbackInfo& info) {
+    HandleScope scope(info.Env());
+
     auto text = info[0].As<String>().Utf8Value();
     auto x = info[1].As<Number>().Int32Value() + this->wx;
     auto y = info[2].As<Number>().Int32Value() + this->wy;
@@ -267,7 +277,7 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
     const SDL_Rect *destRect;
     SDL_Point rotationPoint = { 0, 0 };
 
-    SetTextureTintColor(texture, this->GetColor(), this->opacity);
+    SetTextureTintColor(texture, this->color, this->opacity);
 
     // RenderCopy for each glyph is SLOW. Since SDL does not have a batch API for textured quads, OpenGL will have to
     // be used directly to improve performance.
@@ -306,7 +316,7 @@ void SDLRenderingContext::Blit(const CallbackInfo& info) {
     auto width = info[7].As<Number>().Int32Value();
     auto height = info[8].As<Number>().Int32Value();
 
-    SetTextureTintColor(texture, this->GetTintColor(), this->opacity);
+    SetTextureTintColor(texture, this->tintColor, this->opacity);
 
     SDL_Point rotationPoint = { rotationPointX, rotationPointY };
 
@@ -335,7 +345,7 @@ void SDLRenderingContext::FillRectRounded(const Napi::CallbackInfo& info) {
     auto texture = this->client->GetEffectTexture(roundedRectangleEffect);
 
     if (texture) {
-        SetTextureTintColor(texture, this->GetBackgroundColor(), this->opacity);
+        SetTextureTintColor(texture, this->backgroundColor, this->opacity);
         this->BlitCapInsets(
             texture,
             roundedRectangleEffect.GetCapInsets(),
@@ -362,7 +372,7 @@ void SDLRenderingContext::BorderRounded(const Napi::CallbackInfo& info) {
     auto texture = this->client->GetEffectTexture(roundedRectangleEffect);
 
     if (texture != nullptr) {
-        SetTextureTintColor(texture, this->GetBorderColor(), this->opacity);
+        SetTextureTintColor(texture, this->borderColor, this->opacity);
         this->BlitCapInsets(
             texture,
             roundedRectangleEffect.GetCapInsets(),
