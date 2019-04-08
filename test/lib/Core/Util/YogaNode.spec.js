@@ -11,7 +11,22 @@ import {
   UNIT_AUTO,
   DIRECTION_LTR,
   EDGE_ALL,
-  getInstanceCount
+  getInstanceCount,
+  COMPUTED_LAYOUT_TOP,
+  COMPUTED_LAYOUT_WIDTH,
+  COMPUTED_LAYOUT_HEIGHT,
+  COMPUTED_LAYOUT_LEFT,
+  COMPUTED_LAYOUT_RIGHT,
+  COMPUTED_LAYOUT_BOTTOM,
+  COMPUTED_PADDING_TOP,
+  COMPUTED_PADDING_RIGHT,
+  COMPUTED_PADDING_BOTTOM,
+  COMPUTED_PADDING_LEFT,
+  COMPUTED_BORDER_TOP,
+  COMPUTED_BORDER_RIGHT,
+  COMPUTED_BORDER_BOTTOM,
+  COMPUTED_BORDER_LEFT,
+  COMPUTED_MARGIN_TOP, COMPUTED_MARGIN_RIGHT, COMPUTED_MARGIN_BOTTOM, COMPUTED_MARGIN_LEFT
 } from '../../../../lib/Core/Util/Yoga'
 
 describe('Node', () => {
@@ -41,6 +56,32 @@ describe('Node', () => {
   describe('getComputedBorder()', () => {
     it('should get TRBL border values', () => {
       assert.sameOrderedMembers(layout(node).getComputedBorder(), [ 1, 1, 1, 1 ])
+    })
+  })
+  describe('computed fields', () => {
+    it('should be set after layout', () => {
+      layout(node)
+      assert.equal(node[COMPUTED_LAYOUT_TOP], 5)
+      assert.equal(node[COMPUTED_LAYOUT_RIGHT], 5)
+      assert.equal(node[COMPUTED_LAYOUT_BOTTOM], 5)
+      assert.equal(node[COMPUTED_LAYOUT_LEFT], 5)
+      assert.equal(node[COMPUTED_LAYOUT_WIDTH], 100)
+      assert.equal(node[COMPUTED_LAYOUT_HEIGHT], 50)
+
+      assert.equal(node[COMPUTED_PADDING_TOP], 10)
+      assert.equal(node[COMPUTED_PADDING_RIGHT], 10)
+      assert.equal(node[COMPUTED_PADDING_BOTTOM], 10)
+      assert.equal(node[COMPUTED_PADDING_LEFT], 10)
+
+      assert.equal(node[COMPUTED_MARGIN_TOP], 5)
+      assert.equal(node[COMPUTED_MARGIN_RIGHT], 5)
+      assert.equal(node[COMPUTED_MARGIN_BOTTOM], 5)
+      assert.equal(node[COMPUTED_MARGIN_LEFT], 5)
+
+      assert.equal(node[COMPUTED_BORDER_TOP], 1)
+      assert.equal(node[COMPUTED_BORDER_RIGHT], 1)
+      assert.equal(node[COMPUTED_BORDER_BOTTOM], 1)
+      assert.equal(node[COMPUTED_BORDER_LEFT], 1)
     })
   })
   describe('resetStyle()', () => {

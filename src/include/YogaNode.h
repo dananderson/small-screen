@@ -17,6 +17,30 @@ namespace Yoga {
 #define VOID_METHOD_WITH_PERCENT_AUTO(name) VOID_METHOD_WITH_PERCENT(name); void CONCAT(name, Auto)(const Napi::CallbackInfo& info)
 #define VALUE_METHOD(name) Napi::Value name(const Napi::CallbackInfo& info)
 
+enum ComputedFields : uint32_t {
+    COMPUTED_LAYOUT_TOP = 0,
+    COMPUTED_LAYOUT_RIGHT = 1,
+    COMPUTED_LAYOUT_BOTTOM = 2,
+    COMPUTED_LAYOUT_LEFT = 3,
+    COMPUTED_LAYOUT_WIDTH = 4,
+    COMPUTED_LAYOUT_HEIGHT = 5,
+
+    COMPUTED_BORDER_TOP = 6,
+    COMPUTED_BORDER_RIGHT = 7,
+    COMPUTED_BORDER_BOTTOM = 8,
+    COMPUTED_BORDER_LEFT = 9,
+
+    COMPUTED_PADDING_TOP = 10,
+    COMPUTED_PADDING_RIGHT = 11,
+    COMPUTED_PADDING_BOTTOM = 12,
+    COMPUTED_PADDING_LEFT = 13,
+
+    COMPUTED_MARGIN_TOP = 14,
+    COMPUTED_MARGIN_RIGHT = 15,
+    COMPUTED_MARGIN_BOTTOM = 16,
+    COMPUTED_MARGIN_LEFT = 17,
+};
+
 class Node : public Napi::ObjectWrap<Node> {
 public:
     Node(const Napi::CallbackInfo& info);
@@ -24,6 +48,7 @@ public:
 
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
     static int GetInstanceCount();
+    static Napi::Value Create(const Napi::CallbackInfo& info);
 
     VOID_METHOD(setPositionType);
     VOID_METHOD_WITH_PERCENT(setPosition);

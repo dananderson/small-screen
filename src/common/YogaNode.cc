@@ -60,6 +60,53 @@ void Node::CONCAT(method, Percent)(const CallbackInfo& info) { \
     CONCAT(ygMethod, Percent)(this->ygNode, static_cast<YGEdge>(info[0].As<Number>().Int32Value()), info[1].As<Number>().DoubleValue()); \
 }
 
+inline Napi::Value ToNumber(Env env, const float value, Napi::Value& zero) {
+    return value == 0 ? zero : Number::New(env, value);
+}
+
+void SyncComputedFields(Env env, YGNodeRef ygNode, uint32_t generation, Napi::Value& zero) {
+    // The generation is incremented when layout is run on a dirty node. Since a node marked dirty may not result in
+    // a layout change, using the generation check will result in more syncing than necessary.
+
+    if (YGNodeLayoutGeneration(ygNode) == generation) {
+        auto it = sNodes.find(ygNode);
+
+        if (it != sNodes.end()) {
+            auto& ref = it->second;
+            auto& position = ygNode->getLayout().position;
+            auto& dimensions = ygNode->getLayout().dimensions;
+
+            ref.Set(COMPUTED_LAYOUT_TOP, ToNumber(env, position[YGEdgeTop], zero));
+            ref.Set(COMPUTED_LAYOUT_RIGHT, ToNumber(env, position[YGEdgeRight], zero));
+            ref.Set(COMPUTED_LAYOUT_BOTTOM, ToNumber(env, position[YGEdgeBottom], zero));
+            ref.Set(COMPUTED_LAYOUT_LEFT, ToNumber(env, position[YGEdgeLeft], zero));
+            ref.Set(COMPUTED_LAYOUT_WIDTH, ToNumber(env, dimensions[YGDimensionWidth], zero));
+            ref.Set(COMPUTED_LAYOUT_HEIGHT, ToNumber(env, dimensions[YGDimensionHeight], zero));
+
+            ref.Set(COMPUTED_BORDER_TOP, ToNumber(env, YGNodeLayoutGetBorder(ygNode, YGEdgeTop), zero));
+            ref.Set(COMPUTED_BORDER_RIGHT, ToNumber(env, YGNodeLayoutGetBorder(ygNode, YGEdgeRight), zero));
+            ref.Set(COMPUTED_BORDER_BOTTOM, ToNumber(env, YGNodeLayoutGetBorder(ygNode, YGEdgeBottom), zero));
+            ref.Set(COMPUTED_BORDER_LEFT, ToNumber(env, YGNodeLayoutGetBorder(ygNode, YGEdgeLeft), zero));
+
+            ref.Set(COMPUTED_PADDING_TOP, ToNumber(env, YGNodeLayoutGetPadding(ygNode, YGEdgeTop), zero));
+            ref.Set(COMPUTED_PADDING_RIGHT, ToNumber(env, YGNodeLayoutGetPadding(ygNode, YGEdgeRight), zero));
+            ref.Set(COMPUTED_PADDING_BOTTOM, ToNumber(env, YGNodeLayoutGetPadding(ygNode, YGEdgeBottom), zero));
+            ref.Set(COMPUTED_PADDING_LEFT, ToNumber(env, YGNodeLayoutGetPadding(ygNode, YGEdgeLeft), zero));
+
+            ref.Set(COMPUTED_MARGIN_TOP, ToNumber(env, YGNodeLayoutGetMargin(ygNode, YGEdgeTop), zero));
+            ref.Set(COMPUTED_MARGIN_RIGHT, ToNumber(env, YGNodeLayoutGetMargin(ygNode, YGEdgeRight), zero));
+            ref.Set(COMPUTED_MARGIN_BOTTOM, ToNumber(env, YGNodeLayoutGetMargin(ygNode, YGEdgeBottom), zero));
+            ref.Set(COMPUTED_MARGIN_LEFT, ToNumber(env, YGNodeLayoutGetMargin(ygNode, YGEdgeLeft), zero));
+        }
+    }
+
+    const uint32_t childCount = YGNodeGetChildCount(ygNode);
+
+    for (uint32_t i = 0; i < childCount; i++) {
+        SyncComputedFields(env, YGNodeGetChild(ygNode, i), generation, zero);
+    }
+}
+
 Node::Node(const CallbackInfo& info) : ObjectWrap<Node>(info), ygNode(YGNodeNew()) {
     sNodes[this->ygNode] = Persistent(info.This().As<Object>());
 }
@@ -72,6 +119,7 @@ Object Node::Init(Napi::Env env, Object exports) {
     HandleScope scope(env);
 
     auto func = DefineClass(env, "Node", {
+        StaticMethod("create", Node::Create),
         INSTANCE_METHOD(setPositionType),
         INSTANCE_METHOD(setPosition),
         INSTANCE_METHOD(setPositionPercent),
@@ -160,6 +208,10 @@ Object Node::Init(Napi::Env env, Object exports) {
     exports.Set("Node", func);
 
     return exports;
+}
+
+Napi::Value Node::Create(const CallbackInfo& info) {
+    return constructor.New({});
 }
 
 void Node::destroy(const CallbackInfo& info) {
@@ -323,11 +375,21 @@ Napi::Value Node::isDirty(const Napi::CallbackInfo& info) {
 }
 
 void Node::calculateLayout(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
+    HandleScope scope(env);
     double width = info[0].As<Number>();
     double height = info[1].As<Number>();
     int32_t direction = info[2].As<Number>();
+    auto zero = Number::New(env, 0);
 
     YGNodeCalculateLayout(this->ygNode, width, height, static_cast<YGDirection>(direction));
+
+    // Computed fields are copied to the numbered indexed fields of the node object. This avoids javascript from
+    // calling into native code to get layout information (and constructing temporary objects and arrays). This is
+    // a performance improvement for the existing design. Rendering needs to be refactored to clearly delineate
+    // javascript and native responsibilities.
+     
+    SyncComputedFields(env, this->ygNode, YGNodeCurrentLayoutGeneration(), zero);
 }
 
 Napi::Value Node::getBorderBox(const Napi::CallbackInfo& info) {

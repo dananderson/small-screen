@@ -964,6 +964,14 @@ bool YGNodeLayoutGetDidLegacyStretchFlagAffectLayout(const YGNodeRef node) {
 
 uint32_t gCurrentGenerationCount = 0;
 
+uint32_t YGNodeCurrentLayoutGeneration() {
+    return gCurrentGenerationCount;
+}
+
+uint32_t YGNodeLayoutGeneration(YGNodeRef node) {
+    return node->getLayout().generationCount;
+}
+
 bool YGLayoutNodeInternal(
     const YGNodeRef node,
     const float availableWidth,

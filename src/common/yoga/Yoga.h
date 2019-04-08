@@ -430,3 +430,6 @@ extern void YGNodeSetChildren(
     const std::vector<YGNodeRef>& children);
 
 #endif
+
+WIN_EXPORT uint32_t YGNodeCurrentLayoutGeneration();
+WIN_EXPORT uint32_t YGNodeLayoutGeneration(YGNodeRef node);
