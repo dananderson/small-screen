@@ -117,7 +117,7 @@ public:
     VALUE_METHOD(getBorder);
     VALUE_METHOD(getPadding);
 
-    VOID_METHOD(destroy);
+    VOID_METHOD(release);
     VOID_METHOD(resetStyle);
 
     VALUE_METHOD(getParent);
@@ -148,6 +148,10 @@ private:
 
     YGNodeRef ygNode;
     Napi::FunctionReference measureFunc;
+
+    void ResetStyle();
+    void ResetMeasureFunc();
+    static void Release(YGNodeRef ygNode);
 };
 
 }

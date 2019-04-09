@@ -170,7 +170,7 @@ describe('bindStyle()', () => {
     node = Node.create()
   })
   afterEach(() => {
-    node.destroy()
+    node.release()
   })
 
   function testInvalidEnums (value) {

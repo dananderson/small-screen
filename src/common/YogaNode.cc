@@ -9,12 +9,15 @@
 #include <YGNode.h>
 #include <YGStyle.h>
 #include <map>
+#include <iostream>
 
 using namespace Napi;
 using namespace Yoga;
 
 FunctionReference Node::constructor;
-static std::map<YGNodeRef, ObjectReference> sNodes;
+static std::map<YGNodeRef, ObjectReference> sActiveNodes;
+static std::vector<std::pair<YGNodeRef, ObjectReference>> sNodePool;
+static YGStyle sEmptyStyle = YGStyle{};
 
 #define INSTANCE_METHOD(name) InstanceMethod(#name, &Node::name)
 
@@ -69,9 +72,9 @@ void SyncComputedFields(Env env, YGNodeRef ygNode, uint32_t generation, Napi::Va
     // a layout change, using the generation check will result in more syncing than necessary.
 
     if (YGNodeLayoutGeneration(ygNode) == generation) {
-        auto it = sNodes.find(ygNode);
+        auto it = sActiveNodes.find(ygNode);
 
-        if (it != sNodes.end()) {
+        if (it != sActiveNodes.end()) {
             auto& ref = it->second;
             auto& position = ygNode->getLayout().position;
             auto& dimensions = ygNode->getLayout().dimensions;
@@ -108,7 +111,7 @@ void SyncComputedFields(Env env, YGNodeRef ygNode, uint32_t generation, Napi::Va
 }
 
 Node::Node(const CallbackInfo& info) : ObjectWrap<Node>(info), ygNode(YGNodeNew()) {
-    sNodes[this->ygNode] = Persistent(info.This().As<Object>());
+
 }
 
 Node::~Node() {
@@ -180,7 +183,7 @@ Object Node::Init(Napi::Env env, Object exports) {
         INSTANCE_METHOD(getAspectRatio),
         INSTANCE_METHOD(getBorder),
         INSTANCE_METHOD(getPadding),
-        INSTANCE_METHOD(destroy),
+        INSTANCE_METHOD(release),
         INSTANCE_METHOD(resetStyle),
         INSTANCE_METHOD(getParent),
         INSTANCE_METHOD(getChild),
@@ -211,47 +214,54 @@ Object Node::Init(Napi::Env env, Object exports) {
 }
 
 Napi::Value Node::Create(const CallbackInfo& info) {
-    return constructor.New({});
+    if (sNodePool.empty()) {
+        auto jsNode = constructor.New({}).As<Object>();
+        auto node = ObjectWrap::Unwrap(jsNode);
+
+        sActiveNodes[node->ygNode] = Persistent(jsNode);
+        sActiveNodes[node->ygNode].SuppressDestruct();
+
+        return jsNode;
+    }
+
+    EscapableHandleScope scope(info.Env());
+    auto& poolEntry = sNodePool.back();
+    auto jsNode = poolEntry.second.Value();
+    auto ygNode = poolEntry.first;
+
+    sActiveNodes[ygNode] = std::move(poolEntry.second);
+
+    sNodePool.pop_back();
+
+    return scope.Escape(jsNode);
 }
 
-void Node::destroy(const CallbackInfo& info) {
-    if (this->ygNode == nullptr) {
-        return;
+void Node::release(const CallbackInfo& info) {
+    HandleScope scope(info.Env());
+    auto recursive = info.Length() == 1 ? info[0].ToBoolean().Value() : false;
+
+    if (!recursive && YGNodeGetChildCount(ygNode) > 0) {
+       throw Error::New(info.Env(), "Cannot release Node with children.");
     }
 
-    auto it = sNodes.find(this->ygNode);
+    auto parent = YGNodeGetParent(ygNode);
 
-    if (it != sNodes.end()) {
-        if (YGNodeGetChildCount(this->ygNode)) {
-            throw Error::New(info.Env(), "Cannot destroy Node with children.");
-        }
-
-        auto parent = YGNodeGetParent(this->ygNode);
-
-        if (parent) {
-            YGNodeRemoveChild(parent, this->ygNode);
-        }
-
-        YGNodeFree(this->ygNode);
-        sNodes.erase(this->ygNode);
+    if (parent) {
+        YGNodeRemoveChild(parent, ygNode);
     }
 
-    this->ygNode = nullptr;
-    this->measureFunc.Reset();
+    this->Release(this->ygNode);
 }
 
 void Node::resetStyle(const CallbackInfo& info) {
-    if (this->ygNode) {
-        this->ygNode->setStyle(YGStyle{});
-        this->measureFunc.Reset();
-        this->ygNode->markDirtyAndPropogate();
-    }
+    this->ResetStyle();
+    this->ygNode->markDirtyAndPropogate();
 }
 
 Napi::Value Node::getParent(const CallbackInfo& info) {
-    auto it = sNodes.find(YGNodeGetParent(this->ygNode));
+    auto it = sActiveNodes.find(YGNodeGetParent(this->ygNode));
 
-    if (it != sNodes.end()) {
+    if (it != sActiveNodes.end()) {
         return it->second.Value();
     }
 
@@ -261,9 +271,9 @@ Napi::Value Node::getParent(const CallbackInfo& info) {
 Napi::Value Node::getChild(const CallbackInfo& info) {
     int32_t index = info[0].As<Number>();
     auto node = YGNodeGetChild(this->ygNode, index);
-    auto it = sNodes.find(node);
+    auto it = sActiveNodes.find(node);
 
-    if (it != sNodes.end()) {
+    if (it != sActiveNodes.end()) {
         return it->second.Value();
     }
 
@@ -273,27 +283,27 @@ Napi::Value Node::getChild(const CallbackInfo& info) {
 void Node::insertChild(const CallbackInfo& info) {
     Node *child = ObjectWrap::Unwrap(info[0].As<Object>());
     int32_t index = info[1].As<Number>();
-    auto it = sNodes.find(child->ygNode);
+    auto it = sActiveNodes.find(child->ygNode);
 
-    if (it != sNodes.end()) {
+    if (it != sActiveNodes.end()) {
         YGNodeInsertChild(this->ygNode, child->ygNode, index);
     }
 }
 
 void Node::removeChild(const CallbackInfo& info) {
     Node *child = ObjectWrap::Unwrap(info[0].As<Object>());
-    auto it = sNodes.find(child->ygNode);
+    auto it = sActiveNodes.find(child->ygNode);
 
-    if (it != sNodes.end()) {
+    if (it != sActiveNodes.end()) {
         YGNodeRemoveChild(this->ygNode, child->ygNode);
     }
 }
 
 void Node::pushChild(const CallbackInfo& info) {
     Node *child = ObjectWrap::Unwrap(info[0].As<Object>());
-    auto it = sNodes.find(child->ygNode);
+    auto it = sActiveNodes.find(child->ygNode);
 
-    if (it != sNodes.end()) {
+    if (it != sActiveNodes.end()) {
         YGNodeInsertChild(this->ygNode, child->ygNode, YGNodeGetChildCount(this->ygNode));
     }
 }
@@ -325,13 +335,14 @@ void Node::setMeasureFunc(const Napi::CallbackInfo& info) {
 
     auto func = info[0].As<Function>();
 
+    this->ResetMeasureFunc();
     this->measureFunc.Reset(func, 1);
 
     YGNodeSetMeasureFunc(this->ygNode, [](YGNodeRef nodeRef, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode) -> YGSize {
         YGSize size = { 0, 0 };
-        auto it = sNodes.find(nodeRef);
+        auto it = sActiveNodes.find(nodeRef);
 
-        if (it == sNodes.end()) {
+        if (it == sActiveNodes.end()) {
             return size;
         }
 
@@ -340,7 +351,7 @@ void Node::setMeasureFunc(const Napi::CallbackInfo& info) {
 
         auto jsNode = it->second.Value().As<Object>();
         Node *node = ObjectWrap::Unwrap(jsNode);
-        
+
         auto result = node->measureFunc.Call({
             Number::New(env, width),
             Number::New(env, widthMode),
@@ -362,12 +373,11 @@ void Node::setMeasureFunc(const Napi::CallbackInfo& info) {
 }
 
 void Node::unsetMeasureFunc(const Napi::CallbackInfo& info) {
-    YGNodeSetMeasureFunc(this->ygNode, nullptr);
-    this->measureFunc.Reset();
+    this->ResetMeasureFunc();
 }
 
 void Node::markDirty(const Napi::CallbackInfo& info) {
-    YGNodeMarkDirty(this->ygNode);
+    this->ygNode->markDirtyAndPropogate();
 }
 
 Napi::Value Node::isDirty(const Napi::CallbackInfo& info) {
@@ -530,5 +540,42 @@ void Node::setMarginAuto(const CallbackInfo& info) {
 }
 
 int Node::GetInstanceCount() {
-    return static_cast<int32_t>(sNodes.size());
+    return static_cast<int32_t>(sActiveNodes.size());
+}
+
+void Node::ResetStyle() {
+    this->ygNode->setStyle(sEmptyStyle);
+}
+
+void Node::ResetMeasureFunc() {
+    if (!this->measureFunc.IsEmpty()) {
+        this->measureFunc.Unref();
+        this->measureFunc.Reset();
+        YGNodeSetMeasureFunc(this->ygNode, nullptr);
+    }
+}
+
+void Node::Release(YGNodeRef ygNode) {
+    auto it = sActiveNodes.find(ygNode);
+
+    if (it == sActiveNodes.end()) {
+        return;
+    }
+
+    const uint32_t childCount = YGNodeGetChildCount(ygNode);
+
+    for (uint32_t i = 0; i < childCount; i++) {
+        Release(YGNodeGetChild(ygNode, i));
+    }
+
+    YGNodeRemoveAllChildren(ygNode);
+
+    auto node = ObjectWrap::Unwrap(it->second.Value());
+
+    node->ResetStyle();
+    node->ResetMeasureFunc();
+    ygNode->setDirty(false);
+
+    sNodePool.push_back(std::make_pair(ygNode, std::move(it->second)));
+    sActiveNodes.erase(ygNode);
 }

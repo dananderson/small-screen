@@ -100,29 +100,33 @@ describe('Node', () => {
       assert.equal(node.getWidth().unit, UNIT_AUTO)
     })
   })
-  describe('destroy()', () => {
+  describe('release()', () => {
     it('should be idempotent', () => {
-      node.destroy()
-      node.destroy()
+      node.release()
+      node.release()
     })
-    it('should remove itself from parent on destroy', () => {
+    it('should remove itself from parent on release', () => {
       node.insertChild(childA, 0)
       assert.equal(node.getChildCount(), 1)
-      childA.destroy()
+      childA.release()
       assert.equal(node.getChildCount(), 0)
     })
     it('should throw error if node has children', () => {
       node.insertChild(childA, 0)
-      assert.throws(() => node.destroy())
+      assert.throws(() => node.release())
+    })
+    it('should release recursively', () => {
+      node.insertChild(childA, 0)
+      assert.throws(() => node.release())
     })
   })
   describe('remove()', () => {
-    it('should remove node from it\'s parent', () => {
+    it('should release recursively', () => {
       node.pushChild(childA)
-      assert.equal(node.getChildCount(), 1)
-      childA.remove()
-      assert.equal(node.getChildCount(), 0)
-      assert.isUndefined(childA.getParent())
+      node.pushChild(childB)
+      assert.equal(getInstanceCount(), 3)
+      node.release(true)
+      assert.equal(getInstanceCount(), 0)
     })
   })
   describe('pushChild()', () => {
@@ -155,7 +159,7 @@ describe('Node', () => {
     })
   })
   describe('markDirty()', () => {
-    it('should move child to end of children list', () => {
+    it('should mark the node dirty', () => {
       assert.isFalse(node.isDirty())
       node.setMeasureFunc(() => {}) // required for mark dirty
       node.markDirty()
@@ -197,9 +201,9 @@ describe('Node', () => {
     childB = Node.create()
   })
   afterEach(() => {
-    childB.destroy()
-    childA.destroy()
-    node.destroy()
+    childB.release()
+    childA.release()
+    node.release()
     assert.equal(getInstanceCount(), 0)
   })
 })
