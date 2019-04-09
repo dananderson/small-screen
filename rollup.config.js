@@ -27,8 +27,7 @@ const external = [
 ]
 
 const resolveOpts = {
-  jsnext: true,
-  main: true,
+  mainFields: [ "jsnext:main", "main" ],
   browser: false,
   preferBuiltins: true
 }
@@ -83,7 +82,8 @@ export default [
       terser({
         mangle: {
           module: true,
-          reserved: [ 'bindings' ]
+          reserved: [ 'bindings' ],
+          keep_classnames: /AbortSignal/,
         },
         compress: {
           ecma: 6,
@@ -92,7 +92,8 @@ export default [
           module: true,
           unsafe: true,
           reduce_funcs: false,
-          inline: false
+          inline: false,
+          keep_classnames: /AbortSignal/,
         },
         output: {
           ecma: 6,

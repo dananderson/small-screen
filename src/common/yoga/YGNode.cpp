@@ -6,7 +6,6 @@
  */
 #include "YGNode.h"
 #include <algorithm>
-#include <iostream>
 #include "CompactValue.h"
 #include "Utils.h"
 

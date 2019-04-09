@@ -9,7 +9,6 @@
 #include <YGNode.h>
 #include <YGStyle.h>
 #include <map>
-#include <iostream>
 
 using namespace Napi;
 using namespace Yoga;
