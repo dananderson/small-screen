@@ -27,7 +27,7 @@ const external = [
 ]
 
 const resolveOpts = {
-  mainFields: [ "jsnext:main", "main" ],
+  mainFields: [ 'jsnext:main', 'main' ],
   browser: false,
   preferBuiltins: true
 }
@@ -83,22 +83,23 @@ export default [
         mangle: {
           module: true,
           reserved: [ 'bindings' ],
-          keep_classnames: /AbortSignal/,
+          keep_classnames: /AbortSignal/
         },
         compress: {
-          ecma: 6,
-          passes: 1,
+          ecma: 8,
+          passes: 3,
           collapse_vars: false,
           module: true,
           unsafe: true,
           reduce_funcs: false,
           inline: false,
-          keep_classnames: /AbortSignal/,
+          keep_classnames: /AbortSignal/
         },
         output: {
-          ecma: 6,
+          ecma: 8,
           quote_style: 1,
-          semicolons: false
+          semicolons: false,
+          wrap_iife: true
         }
       })
     ],

@@ -931,13 +931,6 @@
   dependencies:
     "@types/node" "*"
 
-abort-controller@^2.0.3:
-  version "2.0.3"
-  resolved "http://192.168.1.71:4873/abort-controller/-/abort-controller-2.0.3.tgz#b174827a732efadff81227ed4b8d1cc569baf20a"
-  integrity sha512-EPSq5wr2aFyAZ1PejJB32IX9Qd4Nwus+adnp7STYFM5/23nLPBazqZ1oor6ZqbH+4otaaGXTlC8RN5hq3C8w9Q==
-  dependencies:
-    event-target-shim "^5.0.0"
-
 acorn-jsx@^5.0.0:
   version "5.0.1"
   resolved "http://192.168.1.12:4873/acorn-jsx/-/acorn-jsx-5.0.1.tgz#32a064fd925429216a09b141102bfdd185fae40e"
@@ -2038,11 +2031,6 @@ esutils@^2.0.0, esutils@^2.0.2:
   version "2.0.2"
   resolved "http://192.168.1.12:4873/esutils/-/esutils-2.0.2.tgz#0abf4f1caa5bcb1f7a9d8acc6dea4faaa04bac9b"
   integrity sha1-Cr9PHKpbyx96nYrMbepPqqBLrJs=
-
-event-target-shim@^5.0.0:
-  version "5.0.1"
-  resolved "http://192.168.1.71:4873/event-target-shim/-/event-target-shim-5.0.1.tgz#5d4d3ebdf9583d63a5333ce2deb7480ab2b05789"
-  integrity sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==
 
 execa@^0.7.0:
   version "0.7.0"
