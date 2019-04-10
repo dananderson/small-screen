@@ -4,26 +4,24 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifndef STBFONT_H
-#define STBFONT_H
+#pragma once
 
-#include "Font.h"
-#include <stb_truetype.h>
-#include <string>
+#include <napi.h>
 #include <vector>
+#include <memory>
 
-class StbFontSample;
-
-class StbFont : public Font {
+class StbFont : public Napi::ObjectWrap<StbFont> {
 public:
-    StbFont(const std::string& file, const std::string& fontFamily, FontStyle fontStyle, FontWeight fontWeight);
-    virtual ~StbFont();
+    StbFont(const Napi::CallbackInfo& info);
+    ~StbFont();
+
+    static void Init(Napi::Env env);
+    static Napi::Object New(Napi::Env env, int32_t count, std::shared_ptr<uint8_t> ttf);
+
+    Napi::Value CreateSample(const Napi::CallbackInfo& info);
 
 private:
-    stbtt_fontinfo fontInfo;
-    std::vector<unsigned char> ttf;
+    static Napi::FunctionReference constructor;
 
-    friend StbFontSample;
+    std::shared_ptr<uint8_t> ttf;
 };
-
-#endif

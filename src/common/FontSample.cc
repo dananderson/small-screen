@@ -27,3 +27,13 @@ float FontSample::GetKernAdvance(int codepoint, int nextCodePoint) {
 
     return 0;
 }
+
+const CodepointMetrics *FontSample::GetCodepointMetrics(int codepoint) const {
+    auto iter = this->codepointMetrics.find(codepoint);
+
+    if (iter != this->codepointMetrics.end()) {
+        return &(iter->second);
+    }
+
+    return nullptr;
+}

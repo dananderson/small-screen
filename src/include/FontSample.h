@@ -38,7 +38,7 @@ public:
     float GetLineHeight() { return this->lineHeight; }
     float GetKernAdvance(int codepoint, int nextCodePoint);
 
-    virtual const CodepointMetrics *GetCodepointMetrics(int codepoint) const = 0;
+    const CodepointMetrics *GetCodepointMetrics(int codepoint) const;
 
 protected:
     std::string fontFamily;

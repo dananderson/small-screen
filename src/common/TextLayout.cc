@@ -261,7 +261,7 @@ void TextLayout::Layout(
 
 Value TextLayout::Layout(const CallbackInfo& info) {
     auto text = info[0].As<String>().Utf8Value();
-    auto sample = info[1].As<External<FontSample>>().Data();
+    auto sample = ObjectWrap<FontSample>::Unwrap(info[1].As<Object>());
     auto maxLines = info[2].IsNumber() ? info[2].As<Number>().Int32Value() : 0;
     auto ellipsize = info[3].As<Boolean>();
     auto width = info[4].As<Number>().Int32Value();

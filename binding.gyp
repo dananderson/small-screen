@@ -109,8 +109,10 @@
         "src/small-screen-lib/stb.cc",
         "src/small-screen-lib/StbFont.cc",
         "src/small-screen-lib/StbFontSample.cc",
-        "src/small-screen-lib/FontStore.cc",
         "src/small-screen-lib/LoadImageAsyncWorker.cc",
+        "src/small-screen-lib/LoadStbFontAsyncWorker.cc",
+        "src/small-screen-lib/LoadStbFontSampleAsyncWorker.cc",
+        "src/small-screen-lib/Global.cc",
         "src/small-screen-lib/Init.cc"
       ],
       "libraries": [

@@ -29,6 +29,9 @@ Object CapInsets::Init(class Env env, Object exports) {
 }
 
 CapInsets::CapInsets(const CallbackInfo& info) : ObjectWrap<CapInsets>(info) {
+    auto env = info.Env();
+    HandleScope scope(env);
+
     if (info[0].IsNumber()) {
         auto inset = info[0].As<Number>().Int32Value();
         this->rect = { inset, inset, inset, inset };
@@ -36,7 +39,7 @@ CapInsets::CapInsets(const CallbackInfo& info) : ObjectWrap<CapInsets>(info) {
         auto obj = info[0].As<Object>();
 
         if (!obj.Has("left") || !obj.Has("right") || !obj.Has("top") || !obj.Has("bottom")) {
-            throw Error::New(info.Env(), "CapInsets constructor object must contain left, right, top and bottom properties");
+            throw Error::New(env, "CapInsets constructor object must contain left, right, top and bottom properties");
         }
 
         this->rect = {
@@ -46,7 +49,7 @@ CapInsets::CapInsets(const CallbackInfo& info) : ObjectWrap<CapInsets>(info) {
             obj.Get("bottom").As<Number>().Int32Value(),
         };
     } else {
-        throw Error::New(info.Env(), "CapInsets constructor takes a number or an object containing left, right, top and bottom coordinates.");
+        throw Error::New(env, "CapInsets constructor takes a number or an object containing left, right, top and bottom coordinates.");
     }
 
 }

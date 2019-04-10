@@ -4,23 +4,31 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-#ifndef STBFONTSAMPLE_H
-#define STBFONTSAMPLE_H
+#pragma once
 
+#include <napi.h>
+#include <vector>
+#include <map>
 #include "FontSample.h"
-#include <stb_truetype.h>
-#include <string>
-#include <memory>
 
-class StbFont;
+class StbFontSample : public Napi::ObjectWrap<StbFontSample>, public FontSample {
+public:
+    StbFontSample(const Napi::CallbackInfo& info);
+    ~StbFontSample();
 
-class StbFontSample : public FontSample {
-    public:
+    static void Init(Napi::Env env);
+    static Napi::Object New(
+        Napi::Env env,
+        int32_t fontSize,
+        float ascent,
+        float lineHeight,
+        std::vector<uint8_t>& pixels,
+        int32_t width,
+        int32_t height,
+        std::map<int32_t, CodepointMetrics>& codepointMetrics,
+        std::map<uint32_t, float>& kerningPairs
+    );
 
-    StbFontSample(std::shared_ptr<Font> &font, int fontSize);
-    virtual ~StbFontSample();
-
-    virtual const CodepointMetrics *GetCodepointMetrics(int codepoint) const;
+private:
+    static Napi::FunctionReference constructor;
 };
-
-#endif

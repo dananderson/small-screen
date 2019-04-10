@@ -189,8 +189,7 @@ Value SDLClient::CreateTexture(const CallbackInfo& info) {
 
 Value SDLClient::CreateFontTexture(const CallbackInfo& info) {
     auto env = info.Env();
-    auto sample = info[0].As<External<FontSample>>().Data();
-
+    auto sample = ObjectWrap<FontSample>::Unwrap(info[0].As<Object>());
     auto texture = this->CreateFontTexture(sample);
 
     if (texture == nullptr) {

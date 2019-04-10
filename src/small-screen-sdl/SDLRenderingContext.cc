@@ -255,7 +255,7 @@ void SDLRenderingContext::DrawText(const CallbackInfo& info) {
     auto width = info[3].As<Number>().Int32Value();
     auto height = info[4].As<Number>().Int32Value();
     auto imageResource = info[5].As<Object>();
-    auto sample = imageResource.Get("font").As<External<FontSample>>().Data();
+    auto sample = ObjectWrap<FontSample>::Unwrap(imageResource.Get("font").As<Object>());
     auto texture = imageResource.Get("texture").As<External<SDL_Texture>>().Data();
     // TODO: These args should get to the native layer through pushStyle(). Need to refactor to make style info available to native layer.
     auto textLayout = ObjectWrap<TextLayout>::Unwrap(info[6].As<Object>());
