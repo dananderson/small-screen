@@ -12,19 +12,10 @@ import {
   FONT_WEIGHT_BOLD,
   FONT_WEIGHT_NORMAL
 } from '../../../../lib/Core/Style/Constants'
+import { isRejected } from '../../../isRejected'
 
 const TTF = 'test/resources/OpenSans-Regular.ttf'
 const FAMILY = 'Open Sans'
-
-async function isRejected (promise) {
-  try {
-    await promise
-  } catch (err) {
-    return
-  }
-
-  assert.fail('Expected exception.')
-}
 
 describe('FontStore', () => {
   describe('FontStore', () => {

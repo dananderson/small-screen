@@ -6,6 +6,7 @@
 
 import { assert } from 'chai'
 import { loadFont } from '../../../../lib/Core/Util/small-screen-lib'
+import { isRejected } from '../../../isRejected'
 
 const TTF = 'test/resources/OpenSans-Regular.ttf'
 const TTC = 'test/resources/sample_font_collection.ttc'
@@ -38,12 +39,9 @@ describe('loadFont', () => {
     assert.equal(Object.getPrototypeOf(sample).constructor.name, 'StbFontSample')
   })
   it('should throw Error for file not found', async () => {
-    try {
-      await loadFont('file.ttf')
-    } catch (err) {
-      return
-    }
-
-    assert.fail('Expected exception.')
+    await isRejected(loadFont('file.ttf'))
+  })
+  it('should throw Error for non-font file', async () => {
+    await isRejected(loadFont('test/resources/one.png'))
   })
 })

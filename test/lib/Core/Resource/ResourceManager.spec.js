@@ -4,12 +4,9 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-import chai, { assert } from 'chai'
-import chaiAsPromised from 'chai-as-promised'
+import { assert } from 'chai'
 import { createAudio, createGraphics } from '.'
 import { ResourceManager } from '../../../../lib/Core/Resource/ResourceManager'
-
-chai.use(chaiAsPromised)
 
 const IMAGE_URI = 'test/resources/one.png'
 const AUDIO_URI = 'test/resources/test.wav'

@@ -37,7 +37,6 @@
     "@babel/register": "^7.4.0",
     "babel-eslint": "^10.0.1",
     "chai": "^4.2.0",
-    "chai-as-promised": "^7.1.1",
     "del-cli": "^1.1.0",
     "eslint": "^5.16.0",
     "mocha": "^6.1.2",

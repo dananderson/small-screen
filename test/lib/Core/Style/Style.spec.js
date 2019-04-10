@@ -4,14 +4,11 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-import chai, { assert } from 'chai'
-import chaiAsPromised from 'chai-as-promised'
+import { assert } from 'chai'
 import { HINT_HAS_BORDER_RADIUS } from '../../../../lib/Core/Style/Constants'
 import { Style } from '../../../../lib/Core/Style/Style'
 import { ObjectPosition } from '../../../../lib/Core/Style'
 import { TYPE_BOTTOM, TYPE_PERCENT, TYPE_POINT, TYPE_RIGHT } from '../../../../lib/Core/Style/ObjectPosition'
-
-chai.use(chaiAsPromised)
 
 describe('Style()', () => {
   describe('colors', () => {

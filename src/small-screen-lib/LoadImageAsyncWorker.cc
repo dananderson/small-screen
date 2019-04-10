@@ -149,7 +149,11 @@ void LoadImageAsyncWorker::LoadSvgImage(char *chunk, int chunkLen) {
         svg = nsvgParseFromFile(this->source.c_str(), "px", 96);
     }
 
-    if (svg == nullptr) {
+    // XXX: nsvgParse* methods do not check if parsing failed. NSVGImage can be left in a partially filled out state,
+    // resulting in a bad render. Negative width and height are an indication that parsing failed, but that does not
+    // cover all invalid XML use cases.
+
+    if (svg == nullptr || svg->width < 0 || svg->height < 0) {
         throw std::runtime_error("Failed to parse image.");
     }
 
