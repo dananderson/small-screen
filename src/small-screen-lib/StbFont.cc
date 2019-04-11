@@ -11,7 +11,7 @@ using namespace Napi;
 
 FunctionReference StbFont::constructor;
 
-StbFont::StbFont(const CallbackInfo& info) : ObjectWrap<StbFont>(info) {
+StbFont::StbFont(const CallbackInfo& info) : ObjectWrap<StbFont>(info), index(-1) {
 
 }
 
@@ -24,11 +24,14 @@ void StbFont::Init(Napi::Env env) {
     auto zero = Number::New(env, 0);
     auto empty = String::New(env, "");
     auto func = DefineClass(env, "StbFont", {
-        InstanceValue("count", zero, napi_property_attributes::napi_writable),
+        // Properties used by javascript.
         InstanceValue("family", empty, napi_property_attributes::napi_writable),
         InstanceValue("style", zero, napi_property_attributes::napi_writable),
         InstanceValue("weight", zero, napi_property_attributes::napi_writable),
         InstanceValue("status", zero, napi_property_attributes::napi_writable),
+        // Native bound properties.
+        InstanceAccessor("index", &StbFont::GetIndex, nullptr),
+        // Methods
         InstanceMethod("createSample", &StbFont::CreateSample),
     });
 
@@ -36,22 +39,24 @@ void StbFont::Init(Napi::Env env) {
     constructor.SuppressDestruct();
 }
 
-Object StbFont::New(Napi::Env env, int32_t count, std::shared_ptr<uint8_t> ttf) {
+Object StbFont::New(Napi::Env env, int32_t index, std::shared_ptr<uint8_t> ttf) {
     auto obj = StbFont::constructor.New({});
     auto font = ObjectWrap::Unwrap(obj);
 
     font->ttf = ttf;
-
-    // TODO: move to constructor?
-    obj["count"] = Number::New(env, count);
+    font->index = index;
 
     return obj;
+}
+
+Value StbFont::GetIndex(const CallbackInfo& info) {
+    return Number::New(info.Env(), this->index);
 }
 
 Value StbFont::CreateSample(const CallbackInfo& info) {
     auto env = info.Env();
     auto fontSize = info[0].As<Number>().Int32Value();
-    auto worker = new LoadStbFontSampleAsyncWorker(env, this->ttf, 0, fontSize);
+    auto worker = new LoadStbFontSampleAsyncWorker(env, this->ttf, this->index, fontSize);
 
     worker->Queue();
 

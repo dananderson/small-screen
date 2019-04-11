@@ -13,28 +13,31 @@ const TTC = 'test/resources/sample_font_collection.ttc'
 
 describe('loadFont', () => {
   it('should load TrueType Font Collection', async () => {
-    const font = await loadFont(TTC)
+    const fonts = await loadFont(TTC)
 
-    assert.equal(font.count, 2)
+    assert.equal(fonts.length, 2)
+    assert.equal(fonts[0].index, 0)
+    assert.equal(fonts[1].index, 1)
   })
   it('should load sample from TrueType Font Collection', async () => {
-    const font = await loadFont(TTC)
-    const sample = await font.createSample(14)
+    const fonts = await loadFont(TTC)
+    const sample = await fonts[0].createSample(14)
 
     assert.equal(Object.getPrototypeOf(sample).constructor.name, 'StbFontSample')
   })
   it('should load TrueType Font', async () => {
-    const font = await loadFont(TTF)
+    const fonts = await loadFont(TTF)
 
-    assert.equal(font.count, 1)
+    assert.equal(fonts.length, 1)
+    assert.equal(fonts[0].index, 0)
 
-    const sample = await font.createSample(14)
+    const sample = await fonts[0].createSample(14)
 
     assert.equal(Object.getPrototypeOf(sample).constructor.name, 'StbFontSample')
   })
   it('should load sample TrueType Font', async () => {
-    const font = await loadFont(TTF)
-    const sample = await font.createSample(14)
+    const fonts = await loadFont(TTF)
+    const sample = await fonts[0].createSample(14)
 
     assert.equal(Object.getPrototypeOf(sample).constructor.name, 'StbFontSample')
   })

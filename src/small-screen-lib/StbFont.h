@@ -16,12 +16,14 @@ public:
     ~StbFont();
 
     static void Init(Napi::Env env);
-    static Napi::Object New(Napi::Env env, int32_t count, std::shared_ptr<uint8_t> ttf);
+    static Napi::Object New(Napi::Env env, int32_t index, std::shared_ptr<uint8_t> ttf);
 
     Napi::Value CreateSample(const Napi::CallbackInfo& info);
+    Napi::Value GetIndex(const Napi::CallbackInfo& info);
 
 private:
     static Napi::FunctionReference constructor;
 
+    int32_t index;
     std::shared_ptr<uint8_t> ttf;
 };

@@ -70,7 +70,15 @@ void LoadStbFontAsyncWorker::Execute() {
 }
 
 void LoadStbFontAsyncWorker::OnOK() {
-    this->promise.Resolve(StbFont::New(this->Env(), this->count, this->ttf));
+    auto env = this->Env();
+    auto collection = Array::New(env, this->count);
+    auto len = collection.Length();
+
+    for (auto i = 0u; i < len; i++) {
+        collection[i] = StbFont::New(env, i, this->ttf);
+    }
+
+    this->promise.Resolve(collection);
 }
 
 Value LoadStbFontAsyncWorker::Promise() {
