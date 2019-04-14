@@ -10,44 +10,40 @@ import KeyCode from '../../../../lib/Core/Input/KeyCode'
 import { Mapping } from '../../../../lib/Core/Input/Mapping'
 
 describe('Keyboard', () => {
+  let keyboard
   describe('constructor()', () => {
     it('should create a new Keyboard object', () => {
-      const keyboard = new Keyboard()
-
       assert.equal(keyboard.uuid, '00000000-0000-0000-0000-000000000001')
       assert.isTrue(keyboard.connected)
       assert.isTrue(keyboard.isKeyboard)
 
       for (let i = 0; i < KeyCode.MAX_KEYS; i++) {
-        assert.isFalse(keyboard.keys[i])
+        assert.equal(keyboard.keys[i], 0)
       }
     })
   })
   describe('_close()', () => {
     it('should close the input device', () => {
-      const keyboard = new Keyboard()
-
       keyboard._close()
       assert.isFalse(keyboard.connected)
     })
   })
   describe('getDefaultMapping()', () => {
     it('should return an instance of KeyMapping', () => {
-      const keyboard = new Keyboard()
-
       assert.instanceOf(keyboard.getDefaultMapping(), Mapping)
     })
   })
   describe('_resetKeys()', () => {
     it('should set all keys to false', () => {
-      const keyboard = new Keyboard()
-
-      keyboard.keys[KeyCode.KEY_BACKSPACE] = true
+      keyboard.keys[KeyCode.KEY_BACKSPACE] = 1
       keyboard._resetKeys()
 
       for (let i = 0; i < KeyCode.MAX_KEYS; i++) {
-        assert.isFalse(keyboard.keys[i])
+        assert.equal(keyboard.keys[i], 0)
       }
     })
+  })
+  beforeEach(() => {
+    keyboard = new Keyboard()
   })
 })

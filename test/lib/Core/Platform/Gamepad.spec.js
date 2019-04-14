@@ -15,11 +15,10 @@ const GAME_CONTROLLER_MAPPING = '05000000a00500003232000008010000,8Bitdo Zero Ga
 const GAME_CONTROLLER_GUID = '05000000a00500003232000008010000'
 
 describe('Gamepad', () => {
+  let nativeGamepad
+  let gamepad
   describe('constructor()', () => {
     it('should create a new Gamepad object', () => {
-      const nativeGamepad = createNativeGamepad()
-      const gamepad = new Gamepad(nativeGamepad)
-
       assert.equal(gamepad.id, nativeGamepad.getId())
       assert.equal(gamepad.uuid, toUUID(nativeGamepad.getGUID()))
       assert.equal(gamepad.name, nativeGamepad.getName())
@@ -33,15 +32,13 @@ describe('Gamepad', () => {
   })
   describe('getDefaultMapping()', () => {
     it('should return Mapping when native gamepad provides game controller mapping', () => {
-      const nativeGamepad = createNativeGamepad()
-
       nativeGamepad.getGUID.returns(GAME_CONTROLLER_GUID)
       nativeGamepad.getGameControllerMapping.returns(GAME_CONTROLLER_MAPPING)
       nativeGamepad.getButtonCount.returns(12)
       nativeGamepad.getHatCount.returns(0)
       nativeGamepad.getAxisCount.returns(2)
 
-      const gamepad = new Gamepad(nativeGamepad)
+      gamepad = new Gamepad(nativeGamepad)
 
       assert.instanceOf(gamepad.getDefaultMapping(), Mapping)
     })
@@ -53,21 +50,25 @@ describe('Gamepad', () => {
   })
   describe('_close()', () => {
     it('should close the native gamepad', () => {
-      const nativeGamepad = createNativeGamepad()
-      const gamepad = new Gamepad(nativeGamepad)
-
       gamepad._close()
       sinon.assert.calledOnce(nativeGamepad.close)
       assert.notExists(gamepad._nativeGamepad)
       assert.isFalse(gamepad.connected)
     })
     it('should be a no-op if already closed', () => {
-      const nativeGamepad = createNativeGamepad()
-      const gamepad = new Gamepad(nativeGamepad)
-
       gamepad._close()
       gamepad._close()
       sinon.assert.calledOnce(nativeGamepad.close)
     })
+  })
+  beforeEach(() => {
+    nativeGamepad = createNativeGamepad()
+    gamepad = new Gamepad(nativeGamepad)
+  })
+  afterEach(() => {
+    gamepad._close()
+    nativeGamepad.close()
+    gamepad = null
+    nativeGamepad = null
   })
 })
