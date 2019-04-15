@@ -23,7 +23,7 @@ describe('Gamepad', () => {
       assert.equal(gamepad.uuid, toUUID(nativeGamepad.getGUID()))
       assert.equal(gamepad.name, nativeGamepad.getName())
       assert.equal(gamepad._physicalButtonCount, nativeGamepad.getButtonCount())
-      assert.equal(gamepad.buttons.length, nativeGamepad.getButtonCount() + nativeGamepad.getHatCount() * 4)
+      assert.equal(gamepad.buttons.length, nativeGamepad.getButtonCount() + nativeGamepad.getHatCount())
       assert.equal(gamepad._hats.length, nativeGamepad.getHatCount())
       assert.equal(gamepad.axes.length, nativeGamepad.getAxisCount())
       assert.isTrue(gamepad.connected)
