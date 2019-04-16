@@ -14,6 +14,7 @@ addons:
       - g++-6
       - libegl1-mesa-dev
       - libgles2-mesa-dev
+      - libcec4-dev
 
 before_install:
   - |
@@ -36,6 +37,9 @@ before_install:
   - export npm_config_sdl_include_path=$HOME/SDL2/include/SDL2
   - export npm_config_sdl_library_path=$HOME/SDL2/lib
   - export npm_config_with_sdl_mixer=true
+  - export npm_config_with_cec=true
+  - export npm_config_cec_include_path=/usr/include
+  - export npm_config_cec_library_path=/usr/lib/`gcc -dumpmachine`
   - export LD_LIBRARY_PATH=$npm_config_sdl_library_path
 
 install:

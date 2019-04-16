@@ -1,10 +1,13 @@
 {
   "variables": {
     "with_sdl_mixer%": "false",
+    "with_cec%": "false",
     "sdl_library_path%": "/usr/local/lib",
     "sdl_include_path%": "/usr/local/include/SDL2",
     "sdl_mixer_include_path%": "<(sdl_include_path)",
-    "sdl_mixer_library_path%": "<(sdl_library_path)"
+    "sdl_mixer_library_path%": "<(sdl_library_path)",
+    "cec_include_path%": "/usr/include",
+    "cec_library_path%": "/usr/lib"
   },
   "targets": [
     {
@@ -218,6 +221,55 @@
             "libraries": [
               "-L<(sdl_mixer_library_path)",
               "-lSDL2_mixer"
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      "with_cec==\"true\"",
+      {
+        "targets": [
+          {
+            "target_name": "small-screen-cec",
+            "include_dirs": [
+              "<!@(node -p \"require('node-addon-api').include\")",
+              "<(cec_include_path)",
+              "src/include"
+            ],
+            "cflags!": [
+              "-fno-exceptions"
+            ],
+            "cflags_cc!": [
+              "-fno-exceptions"
+            ],
+            "xcode_settings": {
+              "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
+              "CLANG_CXX_LIBRARY": "libc++",
+              "MACOSX_DEPLOYMENT_TARGET": "10.7"
+            },
+            "msvs_settings": {
+              "VCCLCompilerTool": {
+                "ExceptionHandling": 1
+              }
+            },
+            "conditions": [
+              [
+                "OS==\"win\"",
+                {
+                  "defines": [
+                    "_WIN32",
+                    "_HAS_EXCEPTIONS=1"
+                  ]
+                }
+              ]
+            ],
+            "sources": [
+              "src/small-screen-cec/Init.cc"
+            ],
+            "libraries": [
+              "-L<(cec_library_path)",
+              "-lcec"
             ]
           }
         ]
