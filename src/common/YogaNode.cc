@@ -388,10 +388,10 @@ void Node::calculateLayout(const Napi::CallbackInfo& info) {
     HandleScope scope(env);
     double width = info[0].As<Number>();
     double height = info[1].As<Number>();
-    int32_t direction = info[2].As<Number>();
+    auto direction = info[2].IsNumber() ? static_cast<YGDirection>(info[2].As<Number>().Int32Value()) : YGDirectionLTR;
     auto zero = Number::New(env, 0);
 
-    YGNodeCalculateLayout(this->ygNode, width, height, static_cast<YGDirection>(direction));
+    YGNodeCalculateLayout(this->ygNode, width, height, direction);
 
     // Computed fields are copied to the numbered indexed fields of the node object. This avoids javascript from
     // calling into native code to get layout information (and constructing temporary objects and arrays). This is

@@ -8,13 +8,11 @@ import { assert } from 'chai'
 import { Style } from '../../../../lib/Core/Style'
 import { View } from '../../../../lib/Core/Views/View'
 import { getInstanceCount } from '../../../../lib/Core/Util/Yoga'
+import sinon from 'sinon'
+import { LayoutManager } from '../../../../lib/Core/Views/LayoutManager'
 
 describe('View Test', () => {
-  const app = {
-    layout: {
-      off: () => {}
-    }
-  }
+  let app
   let view
   let child
   let baselineViewCount
@@ -81,9 +79,17 @@ describe('View Test', () => {
     // if application initialized, it might have created a View for root. do this tests view counts based on the start
     // of each test to avoid conflicting with application's active Views.
     baselineViewCount = getInstanceCount()
+    app = mockApp()
   })
   afterEach(() => {
     child && child.destroy()
     view && view.destroy()
   })
 })
+
+function mockApp () {
+  return {
+    root: {},
+    layout: sinon.createStubInstance(LayoutManager)
+  }
+}
