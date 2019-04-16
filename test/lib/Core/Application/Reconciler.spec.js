@@ -74,6 +74,7 @@ describe('Reconciler', () => {
     app = mockApp()
     root = new RootView(app)
     root._isDirty = false
+    app.root = root
     reconciler = Reconciler(app)
     container = reconciler.createContainer(root)
   })
