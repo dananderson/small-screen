@@ -12,10 +12,11 @@ addons:
     packages:
       - gcc-6
       - g++-6
+      - libegl1-mesa-dev
+      - libgles2-mesa-dev
+      - libcec-dev
 
 before_install:
-  - sudo apt-get update -y
-  - sudo apt-get install -y libcec4-dev libegl1-mesa-dev libgles2-mesa-dev
   - |
     if [ ! -d "$HOME/SDL2/lib" ]; then
       mkdir "$HOME/tmp"
