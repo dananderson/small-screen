@@ -51,6 +51,7 @@ node_modules/
 jspm_packages/
 build/
 cjs/
+esm/
 
 # TypeScript v1 declaration files
 typings/

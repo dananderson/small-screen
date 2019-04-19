@@ -4,105 +4,85 @@
  * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  */
 
-'use strict'
-
 import babel from 'rollup-plugin-babel'
 import resolve from 'rollup-plugin-node-resolve'
 import commonjs from 'rollup-plugin-commonjs'
 import { terser } from 'rollup-plugin-terser'
-import { builtinModules } from 'module'
-import fs from 'fs'
-import path from 'path'
+import autoExternal from 'rollup-plugin-auto-external'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
-const input = 'lib/export.js'
-const file = 'cjs/small-screen.%env.js'
+// The modules field in env preset must be set to false when running rollup so commonjs can process the import statements.
+const babelPreserveImports = () => {
+  const rc = JSON.parse(readFileSync(join(__dirname, '.babelrc')))
 
-const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json')))
-const external = [
-  ...Object.keys(pkg.dependencies),
-  ...Object.keys(pkg.peerDependencies),
-  ...builtinModules,
-  'fbjs/lib/emptyObject',
-  'fbjs/lib/emptyFunction'
-]
+  rc.presets.find(preset => Array.isArray(preset) && preset.length >= 2 && preset[0] === '@babel/preset-env')[1].modules = false
 
-const resolveOpts = {
-  mainFields: [ 'jsnext:main', 'main' ],
-  browser: false,
-  preferBuiltins: true
+  return babel({
+    ...rc,
+    babelrc: false,
+    exclude: ['node_modules/**']
+  })
 }
 
-const babelOpts = {
-  ...JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc'))),
-  babelrc: false,
-  exclude: ['node_modules/**']
-}
-
-babelOpts.presets.forEach(preset => {
-  if (Array.isArray(preset) && preset.length >= 2 && preset[0] === '@babel/preset-env') {
-    preset[1].modules = false
+const beautify = () => terser({
+  compress: false,
+  mangle: false,
+  output: {
+    ecma: 8,
+    quote_style: 1,
+    semicolons: false,
+    beautify: true,
+    preamble:
+      '/*' +
+      ' * Copyright (C) 2019 Daniel Anderson.' +
+      ' * This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.' +
+      ' */'
   }
 })
 
-const commonjsOpts = {
-  exclude: ['/**/node_modules/**']
-}
-
-const onwarn = warning => {
-  throw new Error(warning.message)
+const baseConfig = {
+  input: 'lib/export.js',
+  external: [
+    // autoExternal does not catch these nested imports.
+    'fbjs/lib/emptyObject',
+    'fbjs/lib/emptyFunction'
+  ],
+  onwarn (warning, warn) {
+    warn(warning)
+    // Stop the CI build for any warnings during rollup.
+    throw Error('Stopping rollup due to warning: ' + warning.message)
+  }
 }
 
 export default [
   {
-    input,
+    ...baseConfig,
     output: {
       format: 'cjs',
-      file: file.replace('%env', 'development')
+      file: 'cjs/small-screen.js'
     },
-    external,
     plugins: [
-      resolve(resolveOpts),
-      babel({ ...babelOpts, comments: true }),
-      commonjs(commonjsOpts)
-    ],
-    onwarn
+      autoExternal(),
+      resolve(),
+      babelPreserveImports(),
+      commonjs({
+        exclude: ['/**/node_modules/**']
+      }),
+      beautify()
+    ]
   },
   {
-    input,
+    ...baseConfig,
     output: {
-      format: 'cjs',
-      file: file.replace('%env', 'production'),
-      sourcemap: true
+      format: 'esm',
+      file: 'esm/small-screen.mjs'
     },
-    external,
     plugins: [
-      resolve(resolveOpts),
-      babel({ ...babelOpts }),
-      commonjs(commonjsOpts),
-      terser({
-        mangle: {
-          module: true,
-          reserved: [ 'bindings' ],
-          keep_classnames: /AbortSignal/
-        },
-        compress: {
-          ecma: 8,
-          passes: 3,
-          collapse_vars: false,
-          module: true,
-          unsafe: true,
-          reduce_funcs: false,
-          inline: false,
-          keep_classnames: /AbortSignal/
-        },
-        output: {
-          ecma: 8,
-          quote_style: 1,
-          semicolons: false,
-          wrap_iife: true
-        }
-      })
-    ],
-    onwarn
+      autoExternal(),
+      resolve(),
+      babelPreserveImports(),
+      beautify()
+    ]
   }
 ]
