@@ -9,24 +9,19 @@ import { parseDataURI } from '../../../../lib/Core/Util/parseDataURI'
 
 describe('parseDataURI()', () => {
   it('should parse data uri with no mime type and no charset', () => {
-    assert.deepEqual(parseDataURI(`data:,${SVG}`),
-      { type: 'utf8', mimeType: undefined, data: SVG })
+    assert.deepEqual(parseDataURI(`data:,${SVG}`), [ 'utf8', undefined, SVG ])
   })
   it('should parse data uri with mime type and utf8 charset', () => {
-    assert.deepEqual(parseDataURI(`data:image/svg+xml;utf8,${SVG}`),
-      { type: 'utf8', mimeType: 'image/svg+xml', data: SVG })
+    assert.deepEqual(parseDataURI(`data:image/svg+xml;utf8,${SVG}`), [ 'utf8', 'image/svg+xml', SVG ])
   })
   it('should parse data uri with mime type, utf8 charset and uri encoded svg', () => {
-    assert.deepEqual(parseDataURI(`data:image/svg+xml;utf8,${encodeURIComponent(SVG)}`),
-      { type: 'utf8', mimeType: 'image/svg+xml', data: SVG })
+    assert.deepEqual(parseDataURI(`data:image/svg+xml;utf8,${encodeURIComponent(SVG)}`), [ 'utf8', 'image/svg+xml', SVG ])
   })
   it('should parse data uri with mime type and explicit utf8 charset', () => {
-    assert.deepEqual(parseDataURI(`data:image/svg+xml;charset=utf8,${SVG}`),
-      { type: 'utf8', mimeType: 'image/svg+xml', data: SVG })
+    assert.deepEqual(parseDataURI(`data:image/svg+xml;charset=utf8,${SVG}`), [ 'utf8', 'image/svg+xml', SVG ])
   })
   it('should parse data uri with no mime type and base 64 encoding', () => {
-    assert.deepEqual(parseDataURI(`data:;base64,${SVG_BASE64}`),
-      { type: 'base64', mimeType: undefined, data: SVG_BASE64 })
+    assert.deepEqual(parseDataURI(`data:;base64,${SVG_BASE64}`), [ 'base64', undefined, SVG_BASE64 ])
   })
   it('should throw Error for an invalid data uri', () => {
     assert.throws(() => parseDataURI(`,${SVG}`))
