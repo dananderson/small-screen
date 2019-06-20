@@ -22,7 +22,7 @@
     "fbjs": "^1.0.0",
     "is-url": "^1.2.4",
     "node-addon-api": "^1.6.3",
-    "node-fetch": "^2.5.0",
+    "node-fetch": "^2.6.0",
     "prop-types": "^15.7.2"
   },
   "peerDependencies": {
@@ -31,32 +31,29 @@
     "scheduler": "0.13.6"
   },
   "devDependencies": {
-    "@babel/core": "^7.4.4",
+    "@babel/core": "^7.4.5",
     "@babel/plugin-proposal-class-properties": "^7.4.4",
-    "@babel/preset-env": "^7.4.4",
+    "@babel/preset-env": "^7.4.5",
     "@babel/preset-react": "^7.0.0",
     "@babel/register": "^7.4.4",
-    "babel-eslint": "^10.0.1",
+    "babel-eslint": "^10.0.2",
     "chai": "^4.2.0",
-    "del-cli": "^1.1.0",
+    "del-cli": "^2.0.0",
     "eslint": "^5.16.0",
     "mocha": "^6.1.4",
-    "nyc": "^14.1.0",
+    "nyc": "^14.1.1",
     "react": "16.8.6",
     "react-reconciler": "0.20.4",
     "react-test-renderer": "^16.8.6",
-    "rollup": "^1.11.3",
+    "rollup": "^1.15.6",
     "rollup-plugin-auto-external": "^2.0.0",
     "rollup-plugin-babel": "^4.3.2",
-    "rollup-plugin-commonjs": "^9.3.4",
-    "rollup-plugin-node-resolve": "^4.2.3",
-    "rollup-plugin-terser": "^4.0.4",
+    "rollup-plugin-commonjs": "^10.0.0",
+    "rollup-plugin-node-resolve": "^5.0.3",
+    "rollup-plugin-terser": "^5.0.0",
     "scheduler": "0.13.6",
     "sinon": "^7.3.2",
     "standard": "^12.0.1"
-  },
-  "config": {
-    "yoga-layout:platform": "standalone"
   },
   "files": [
     "cjs/",
