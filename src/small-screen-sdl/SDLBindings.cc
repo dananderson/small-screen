@@ -102,7 +102,7 @@ Object JS_GetCapabilities(const CallbackInfo& info) {
 
     SDL_GetRenderDriverInfo(0, &rendererInfo);
     SDL_GetDesktopDisplayMode(0, &screenDisplayMode);
-    SDL_GetDisplayUsableBounds(0, &usableBounds);
+    SDL_GetDisplayBounds(0, &usableBounds);
 
     auto windowManagerBounds = Object::New(env);
 

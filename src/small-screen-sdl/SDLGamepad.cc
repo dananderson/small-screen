@@ -106,7 +106,17 @@ Napi::Value SDLGamepad::Length(const Napi::CallbackInfo& info) {
 }
 
 Napi::Value SDLGamepad::GetIdForIndex(const Napi::CallbackInfo& info) {
+    auto env = info.Env();
     auto index = info[0].As<Number>().Int32Value();
+    auto joystick = SDL_JoystickOpen(index);
 
-    return Number::New(info.Env(), SDL_JoystickGetDeviceInstanceID(index));
+    if (joystick == nullptr) {
+        return Number::New(env, -1);
+    }
+
+    auto id = SDL_JoystickInstanceID(joystick);
+
+    SDL_JoystickClose(joystick);
+    
+    return Number::New(env, id);
 }
