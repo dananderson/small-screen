@@ -162,6 +162,7 @@ typedef struct NSVGimage
 
 // Parses SVG file from a file, returns SVG image as paths.
 NSVGimage* nsvgParseFromFile(const char* filename, const char* units, float dpi);
+NSVGimage* nsvgParseFromFilePtr(FILE *fp, const char* units, float dpi);
 
 // Parses SVG file from a null terminated string, returns SVG image as paths.
 // Important note: changes the string.
@@ -2885,6 +2886,59 @@ NSVGimage* nsvgParse(char* input, const char* units, float dpi)
 	nsvg__deleteParser(p);
 
 	return ret;
+}
+
+// Returns true if the file starts with optional whitespace followed by XML tags: <?, <!-- or <svg.
+int nsvgStartsWithXml(FILE *fp) {
+    static const int HEADER_SIZE = 32;
+    char header[HEADER_SIZE];
+    auto count = fread(header, 1, HEADER_SIZE, fp);
+
+    for (decltype(count) i = 0; i < count; i++) {
+        auto c = header[i];
+
+        if (!nsvg__isspace(c)) {
+            if (c == '<' && (i + 1 < count)) {
+                c = header[i + 1];
+                return (c == '?' || c == '!' || c == 's');
+            }
+
+            break;
+        }
+    }
+
+    return 0;
+}
+
+NSVGimage* nsvgParseFromFilePtr(FILE *fp, const char* units, float dpi)
+{
+	size_t size;
+	char* data = NULL;
+	NSVGimage* image = NULL;
+
+	if (!fp) goto error;
+
+    // If the file does not start with XML characters, bail. This saves reading the entire file into memory,
+    // just to be disappointed.
+	if (!nsvgStartsWithXml(fp)) goto error;
+
+	fseek(fp, 0, SEEK_END);
+	size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	data = (char*)malloc(size+1);
+	if (data == NULL) goto error;
+	if (fread(data, 1, size, fp) != size) goto error;
+	data[size] = '\0';	// Must be null terminated.
+	fclose(fp);
+	image = nsvgParse(data, units, dpi);
+	free(data);
+
+	return image;
+
+error:
+	if (data) free(data);
+	if (image) nsvgDelete(image);
+	return NULL;
 }
 
 NSVGimage* nsvgParseFromFile(const char* filename, const char* units, float dpi)

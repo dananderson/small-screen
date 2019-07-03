@@ -15,14 +15,13 @@
       "type": "static_library",
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
-        "deps/nanosvg",
-        "deps/stb",
         "deps/utf8_v2_3_4",
         "src/include",
         "src/common/yoga"
       ],
-      "cflags!": [
-        "-fno-exceptions"
+      "dependencies": [
+        "deps/stb_truetype/stb_truetype.gyp:stb_truetype",
+        "deps/nanosvg/nanosvg.gyp:nanosvg",
       ],
       "cflags_cc!": [
         "-fno-exceptions"
@@ -54,7 +53,6 @@
         "src/common/FontSample.cc",
         "src/common/TextLayout.cc",
         "src/common/CapInsets.cc",
-        "src/common/nanosvg.cc",
         "src/common/yoga/log.cpp",
         "src/common/yoga/Utils.cpp",
         "src/common/yoga/YGConfig.cpp",
@@ -75,14 +73,16 @@
       "target_name": "small-screen-lib",
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
-        "deps/nanosvg",
-        "deps/stb",
+        "deps/nanosvg/include",
+        "deps/stb_truetype/include",
+        "deps/stb_image/include",
         "deps/utf8_v2_3_4",
         "src/include",
         "src/common/yoga"
       ],
-      "cflags!": [
-        "-fno-exceptions"
+      "dependencies": [
+        "deps/stb_image/stb_image.gyp:stb_image",
+        "common",
       ],
       "cflags_cc!": [
         "-fno-exceptions"
@@ -109,7 +109,6 @@
         ]
       ],
       "sources": [
-        "src/small-screen-lib/stb.cc",
         "src/small-screen-lib/StbFont.cc",
         "src/small-screen-lib/StbFontSample.cc",
         "src/small-screen-lib/LoadImageAsyncWorker.cc",
@@ -117,9 +116,6 @@
         "src/small-screen-lib/LoadStbFontSampleAsyncWorker.cc",
         "src/small-screen-lib/Global.cc",
         "src/small-screen-lib/Init.cc"
-      ],
-      "libraries": [
-        "<(PRODUCT_DIR)/common.a"
       ]
     },
     {
@@ -130,9 +126,6 @@
         "deps/utf8_v2_3_4",
         "deps/nanosvg",
         "src/include"
-      ],
-      "cflags!": [
-        "-fno-exceptions"
       ],
       "cflags_cc!": [
         "-fno-exceptions"
@@ -187,9 +180,6 @@
               "<(sdl_mixer_include_path)",
               "src/include"
             ],
-            "cflags!": [
-              "-fno-exceptions"
-            ],
             "cflags_cc!": [
               "-fno-exceptions"
             ],
@@ -236,9 +226,6 @@
               "<!@(node -p \"require('node-addon-api').include\")",
               "<(cec_include_path)",
               "src/include"
-            ],
-            "cflags!": [
-              "-fno-exceptions"
             ],
             "cflags_cc!": [
               "-fno-exceptions"
