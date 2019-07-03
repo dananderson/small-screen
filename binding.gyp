@@ -17,11 +17,12 @@
         "<!@(node -p \"require('node-addon-api').include\")",
         "deps/utf8_v2_3_4",
         "src/include",
-        "src/common/yoga"
+        "deps/yoga/lib"
       ],
       "dependencies": [
         "deps/stb_truetype/stb_truetype.gyp:stb_truetype",
         "deps/nanosvg/nanosvg.gyp:nanosvg",
+        "deps/yoga/yoga.gyp:yoga",
       ],
       "cflags_cc!": [
         "-fno-exceptions"
@@ -53,17 +54,6 @@
         "src/common/FontSample.cc",
         "src/common/TextLayout.cc",
         "src/common/CapInsets.cc",
-        "src/common/yoga/log.cpp",
-        "src/common/yoga/Utils.cpp",
-        "src/common/yoga/YGConfig.cpp",
-        "src/common/yoga/YGEnums.cpp",
-        "src/common/yoga/YGLayout.cpp",
-        "src/common/yoga/YGMarker.cpp",
-        "src/common/yoga/YGNode.cpp",
-        "src/common/yoga/YGNodePrint.cpp",
-        "src/common/yoga/YGStyle.cpp",
-        "src/common/yoga/YGValue.cpp",
-        "src/common/yoga/Yoga.cpp",
         "src/common/YogaValue.cc",
         "src/common/YogaNode.cc",
         "src/common/YogaGlobal.cc",
@@ -78,7 +68,7 @@
         "deps/stb_image/include",
         "deps/utf8_v2_3_4",
         "src/include",
-        "src/common/yoga"
+        "deps/yoga/lib"
       ],
       "dependencies": [
         "deps/stb_image/stb_image.gyp:stb_image",
