@@ -66,12 +66,17 @@
         "deps/nanosvg/include",
         "deps/stb_truetype/include",
         "deps/stb_image/include",
+        "deps/fmt/include",
         "deps/utf8_v2_3_4",
         "src/include",
+        "src/small-screen-core/include",
         "deps/yoga/lib"
       ],
       "dependencies": [
         "deps/stb_image/stb_image.gyp:stb_image",
+        "deps/nanosvg/nanosvg.gyp:nanosvg",
+        "src/small-screen-core/small-screen-core.gyp:small-screen-core",
+        "deps/fmt/fmt.gyp:fmt",
         "common",
       ],
       "cflags_cc!": [
